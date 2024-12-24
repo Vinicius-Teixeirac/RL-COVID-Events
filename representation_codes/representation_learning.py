@@ -1,179 +1,183 @@
-from pathlib import Path
-import argparse
-import pandas as pd
-import numpy as np
-import networkx as nx
-from sklearn.preprocessing import normalize
-from sklearn.preprocessing import StandardScaler
-import os
-
-""" Getting the hiperparameters for the experiments
-
 """
-
-parser = argparse.ArgumentParser(description ='Get the specifications')
-
-parser.add_argument('hyperparameters', metavar='N', type=int, nargs=8,
-                    help='eight integer hyperparameters: k_s, k_g, k_t, k_pca, ppxty, k_TSNE, k_UMAP, UMAP_n_neighbors')
-
-
-parser.add_argument('dataset_path', type=str, 
-                    help='The name of the dataset file') 
-
-args = parser.parse_args()
-k_s, k_g, k_t, k_pca, ppxty, k_TSNE, k_UMAP, UMAP_n_neighbors = args.hyperparameters
-
-dataset_path = args.dataset_path
-dataset_name = os.path.basename(dataset_path)
-
-output_dir = "./results/"
-Path(output_dir).mkdir(parents=True, exist_ok=True)
-
-dataset = pd.read_pickle(f"{dataset_path}")
-
+Representation_learning was the initial stage of experiments development, but is no longer necessary.
+It has "inspired" the adjacent code, but is no longer usefull. It will be removed soon.
 """
-Getting the representations:
-* R_s - Semantic
-* R_t - Temporal
-* R_g - Geospatial
-"""
+# from pathlib import Path
+# import argparse
+# import pandas as pd
+# import numpy as np
+# import networkx as nx
+# from sklearn.preprocessing import normalize
+# from sklearn.preprocessing import StandardScaler
+# import os
 
-# R_s
-R_s = np.array(dataset['embeddings'].to_list()) 
-R_s_norm = normalize(R_s, norm="l2") # normalized to reduce numerical instability in cosine measure
+# """ Getting the hiperparameters for the experiments
 
-# R_g
-R_g = np.array(dataset[['country_lat','country_lng']])
+# """
 
-# R_t
-dataset['dates'] = pd.to_datetime(dataset['dates'])
+# parser = argparse.ArgumentParser(description ='Get the specifications')
 
-minimal_date = min(dataset['dates'])
+# parser.add_argument('hyperparameters', metavar='N', type=int, nargs=8,
+#                     help='eight integer hyperparameters: k_s, k_g, k_t, k_pca, ppxty, k_TSNE, k_UMAP, UMAP_n_neighbors')
 
-tdiff = list(dataset['dates'] - minimal_date)
 
-time_delta = [t_delta.days for t_delta in tdiff]
+# parser.add_argument('dataset_path', type=str, 
+#                     help='The name of the dataset file') 
 
-dataset['date_timediff'] = time_delta
+# args = parser.parse_args()
+# k_s, k_g, k_t, k_pca, ppxty, k_TSNE, k_UMAP, UMAP_n_neighbors = args.hyperparameters
 
-R_t = np.array(dataset[['date_timediff']])
+# dataset_path = args.dataset_path
+# dataset_name = os.path.basename(dataset_path)
 
-""" Concatenating the representations 
+# output_dir = "./results/"
+# Path(output_dir).mkdir(parents=True, exist_ok=True)
 
-"""
-scaler = StandardScaler()
+# dataset = pd.read_pickle(f"{dataset_path}")
 
-R_f = np.concatenate((R_s_norm,R_g,R_t),axis=1)
+# """
+# Getting the representations:
+# * R_s - Semantic
+# * R_t - Temporal
+# * R_g - Geospatial
+# """
 
-R_f_scaled = scaler.fit_transform(R_f)
+# # R_s
+# R_s = np.array(dataset['embeddings'].to_list()) 
+# R_s_norm = normalize(R_s, norm="l2") # normalized to reduce numerical instability in cosine measure
 
-""" Consistency graph as a way to measure the success of the representation
+# # R_g
+# R_g = np.array(dataset[['country_lat','country_lng']])
 
-"""
+# # R_t
+# dataset['dates'] = pd.to_datetime(dataset['dates'])
 
-from sklearn.neighbors import kneighbors_graph
+# minimal_date = min(dataset['dates'])
 
-A_s = kneighbors_graph(R_s_norm, k_s, mode='connectivity',metric="cosine")
-A_g = kneighbors_graph(R_g, k_g, mode='connectivity',metric="haversine")
-A_t = kneighbors_graph(R_t, k_t, mode='connectivity',metric="euclidean")
+# tdiff = list(dataset['dates'] - minimal_date)
 
-A_f = A_s.toarray() + A_g.toarray() + A_t.toarray()
+# time_delta = [t_delta.days for t_delta in tdiff]
 
-A_f = np.where(A_f < 2, 0, 1)
+# dataset['date_timediff'] = time_delta
 
-G_consistencia =  nx.Graph(A_f)
+# R_t = np.array(dataset[['date_timediff']])
 
-""" Creating a dataframe to facilitate the comparsions
+# """ Concatenating the representations 
 
-"""
+# """
+# scaler = StandardScaler()
 
-df_consistencia = pd.DataFrame([str(edge) for edge in G_consistencia.edges()], columns=['Edges'])
+# R_f = np.concatenate((R_s_norm,R_g,R_t),axis=1)
 
-df_consistencia.to_csv(f'{output_dir}/df_consistencia_{dataset_name}_{k_s}_{k_g}_{k_t}.csv')
+# R_f_scaled = scaler.fit_transform(R_f)
 
-desired_dimensionality = 2
+# """ Consistency graph as a way to measure the success of the representation
 
-rnd_state = 42
+# """
 
-""" Applying PCA
+# from sklearn.neighbors import kneighbors_graph
 
-"""
+# A_s = kneighbors_graph(R_s_norm, k_s, mode='connectivity',metric="cosine")
+# A_g = kneighbors_graph(R_g, k_g, mode='connectivity',metric="haversine")
+# A_t = kneighbors_graph(R_t, k_t, mode='connectivity',metric="euclidean")
 
-from sklearn.decomposition import PCA
+# A_f = A_s.toarray() + A_g.toarray() + A_t.toarray()
 
-pca = PCA(n_components=desired_dimensionality)
-pca.fit(R_f_scaled)
-R_f_PCA = pca.transform(R_f_scaled)
+# A_f = np.where(A_f < 2, 0, 1)
 
-A_PCA = kneighbors_graph(R_f_PCA, k_pca, mode='connectivity').toarray()
+# G_consistencia =  nx.Graph(A_f)
 
-G_PCA =  nx.Graph(A_PCA)
+# """ Creating a dataframe to facilitate the comparsions
 
-df_PCA = pd.DataFrame([str(edge) for edge in G_PCA.edges()], columns=['Edges'])
+# """
 
-df_PCA.to_csv(f'{output_dir}/df_pca_{dataset_name}_k={k_pca}_.csv')
+# df_consistencia = pd.DataFrame([str(edge) for edge in G_consistencia.edges()], columns=['Edges'])
 
-""" Applying T-SNE
+# df_consistencia.to_csv(f'{output_dir}/df_consistencia_{dataset_name}_{k_s}_{k_g}_{k_t}.csv')
 
-"""
+# desired_dimensionality = 2
 
-from sklearn.manifold import TSNE
+# rnd_state = 42
 
-R_f_TSNE = TSNE(n_components=desired_dimensionality, perplexity=ppxty, random_state=rnd_state, metric='cosine').fit_transform(R_f_scaled)
+# """ Applying PCA
 
-A_TSNE = kneighbors_graph(R_f_TSNE, k_TSNE, mode='connectivity').toarray()
+# """
 
-G_TSNE =  nx.Graph(A_TSNE)
+# from sklearn.decomposition import PCA
 
-df_TSNE = pd.DataFrame([str(edge) for edge in G_TSNE.edges()], columns=['Edges'])
+# pca = PCA(n_components=desired_dimensionality)
+# pca.fit(R_f_scaled)
+# R_f_PCA = pca.transform(R_f_scaled)
 
-df_TSNE.to_csv(f'{output_dir}/df_TSNE_{dataset_name}_k={k_TSNE}_ppxty={ppxty}_.csv')
+# A_PCA = kneighbors_graph(R_f_PCA, k_pca, mode='connectivity').toarray()
 
-""" Applying UMAP
+# G_PCA =  nx.Graph(A_PCA)
 
-"""
+# df_PCA = pd.DataFrame([str(edge) for edge in G_PCA.edges()], columns=['Edges'])
 
-import umap
+# df_PCA.to_csv(f'{output_dir}/df_pca_{dataset_name}_k={k_pca}_.csv')
 
-reducer = umap.UMAP(n_neighbors=UMAP_n_neighbors, n_components=desired_dimensionality, metric='cosine', random_state=rnd_state)
+# """ Applying T-SNE
 
-R_f_UMAP = reducer.fit_transform(R_f_scaled)
+# """
 
-A_UMAP = kneighbors_graph(R_f_UMAP, k_UMAP, mode='connectivity').toarray()
+# from sklearn.manifold import TSNE
 
-G_UMAP =  nx.Graph(A_UMAP)
+# R_f_TSNE = TSNE(n_components=desired_dimensionality, perplexity=ppxty, random_state=rnd_state, metric='cosine').fit_transform(R_f_scaled)
 
-df_UMAP = pd.DataFrame([str(edge) for edge in G_UMAP.edges()], columns=['Edges'])
+# A_TSNE = kneighbors_graph(R_f_TSNE, k_TSNE, mode='connectivity').toarray()
 
-df_UMAP.to_csv(f'{output_dir}/df_UMAP_{dataset_name}_neighbors={UMAP_n_neighbors}_k={k_UMAP}_.csv')
+# G_TSNE =  nx.Graph(A_TSNE)
 
-""" Applying UMAP aligned (with Consistency)
+# df_TSNE = pd.DataFrame([str(edge) for edge in G_TSNE.edges()], columns=['Edges'])
 
-"""
+# df_TSNE.to_csv(f'{output_dir}/df_TSNE_{dataset_name}_k={k_TSNE}_ppxty={ppxty}_.csv')
 
-kclique = nx.community.k_clique_communities(G_consistencia, 3)
-labels_dict = {}
-c_id = 0
-for c in kclique:
-  for node in c:
-    labels_dict[node] = c_id
-  c_id += 1
+# """ Applying UMAP
 
-y = [-1]*G_consistencia.number_of_nodes()
+# """
 
-for node in G_consistencia.nodes():
-  if node in labels_dict: y[node] = labels_dict[node]
+# import umap
 
-aligned_reducer = umap.UMAP(n_neighbors=UMAP_n_neighbors, n_components=desired_dimensionality, metric='cosine', random_state=rnd_state)
+# reducer = umap.UMAP(n_neighbors=UMAP_n_neighbors, n_components=desired_dimensionality, metric='cosine', random_state=rnd_state)
 
-R_f_consistency_UMAP = aligned_reducer.fit_transform(R_f_scaled,y=y)
+# R_f_UMAP = reducer.fit_transform(R_f_scaled)
 
-A_consistency_UMAP = kneighbors_graph(R_f_consistency_UMAP, k_UMAP, mode='connectivity').toarray()
+# A_UMAP = kneighbors_graph(R_f_UMAP, k_UMAP, mode='connectivity').toarray()
 
-G_consistency_UMAP =  nx.Graph(A_consistency_UMAP)
+# G_UMAP =  nx.Graph(A_UMAP)
 
-df_consistency_UMAP = pd.DataFrame([str(edge) for edge in G_consistency_UMAP.edges()], columns=['Edges'])
+# df_UMAP = pd.DataFrame([str(edge) for edge in G_UMAP.edges()], columns=['Edges'])
 
-df_consistency_UMAP.to_csv(f'{output_dir}/df_consistency_UMAP_{dataset_name}_neighbors={UMAP_n_neighbors}_k={k_UMAP}_.csv')
+# df_UMAP.to_csv(f'{output_dir}/df_UMAP_{dataset_name}_neighbors={UMAP_n_neighbors}_k={k_UMAP}_.csv')
 
-print('success', flush=True)
+# """ Applying UMAP aligned (with Consistency)
+
+# """
+
+# kclique = nx.community.k_clique_communities(G_consistencia, 3)
+# labels_dict = {}
+# c_id = 0
+# for c in kclique:
+#   for node in c:
+#     labels_dict[node] = c_id
+#   c_id += 1
+
+# y = [-1]*G_consistencia.number_of_nodes()
+
+# for node in G_consistencia.nodes():
+#   if node in labels_dict: y[node] = labels_dict[node]
+
+# aligned_reducer = umap.UMAP(n_neighbors=UMAP_n_neighbors, n_components=desired_dimensionality, metric='cosine', random_state=rnd_state)
+
+# R_f_consistency_UMAP = aligned_reducer.fit_transform(R_f_scaled,y=y)
+
+# A_consistency_UMAP = kneighbors_graph(R_f_consistency_UMAP, k_UMAP, mode='connectivity').toarray()
+
+# G_consistency_UMAP =  nx.Graph(A_consistency_UMAP)
+
+# df_consistency_UMAP = pd.DataFrame([str(edge) for edge in G_consistency_UMAP.edges()], columns=['Edges'])
+
+# df_consistency_UMAP.to_csv(f'{output_dir}/df_consistency_UMAP_{dataset_name}_neighbors={UMAP_n_neighbors}_k={k_UMAP}_.csv')
+
+# print('success', flush=True)
