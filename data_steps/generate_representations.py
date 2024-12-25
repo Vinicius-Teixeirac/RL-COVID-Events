@@ -32,7 +32,7 @@ def get_representations(dataset_name):
     scaler = StandardScaler()
     R_f_scaled = scaler.fit_transform(R_f)
 
-    return R_f_scaled
+    return R_s_norm, R_g, R_t, R_f_scaled
 
 
 # main so i can run it independently 
@@ -49,11 +49,11 @@ if __name__ == "__main__":
     parser.add_argument("--output_dir", type=str, default="./datasets'_representations", help="Directory to save the output.")
     args = parser.parse_args()
     
-    dataset = args.dataset
+    dataset_path = args.dataset
     output_dir = args.output_dir
 
-    dataset_name = os.path.basename(dataset)[:-4]
-    R_f_scaled = get_representations(dataset)
+    dataset_name = os.path.basename(dataset_path)[:-4]
+    _, _, _, R_f_scaled = get_representations(dataset_path)
     
     Path(output_dir).mkdir(parents=True, exist_ok=True)
     np.save(f"{output_dir}/{dataset_name}_representations.npy", R_f_scaled)
