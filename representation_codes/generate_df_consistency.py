@@ -1,6 +1,5 @@
 from pathlib import Path
 import argparse
-import pandas as pd
 import numpy as np
 import networkx as nx
 import os
@@ -21,7 +20,7 @@ def get_consistency_adjacency(R_s: np.array, R_g: np.array, R_t: np.array, k_s: 
 
 
 if __name__ == "__main__":
-    output_dir = "./RL-COVID-EVENTS/results/consistencia"
+    output_dir = "./RL-COVID-EVENTS/Results/Consistency"
     Path(output_dir).mkdir(parents=True, exist_ok=True)
     
     parser = argparse.ArgumentParser(description ='Generate the consistency datasets')
@@ -38,10 +37,11 @@ if __name__ == "__main__":
 
     A_f = get_consistency_adjacency(R_s_norm, R_g, R_t, k_s, k_g, k_t) # this graph is also directed...
 
-    G_consistency =  nx.Graph() # here, i should put nx.DiGraph()
+    G_consistency =  nx.DiGraph(A_f) # here, i should put nx.DiGraph()
 
     edges = set(G_consistency.edges())
-    output_file = f"{output_dir}/edges_consistency_{dataset_name[:-4]}_{k_s}_{k_g}_{k_t}.pkl"
+    output_file = f"{output_dir}/edges_Consistency_{dataset_name[:-4]}_{k_s}_{k_g}_{k_t}.pkl"
+    
     with open(output_file, 'wb') as f:
         pickle.dump(edges, f)
     
