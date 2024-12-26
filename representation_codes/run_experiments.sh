@@ -68,39 +68,39 @@ for dataset_name in "${datasets[@]}"; do
     kumap_values=("${hyperparams[@]:0:100}")
     umap_neighbors_values=("${hyperparams[@]:0:100}")
 
-    # for ks in "${ks_values[@]}"; do
-    #   for kg in "${kg_values[@]}"; do
-    #     for kt in "${kt_values[@]}"; do
-    #       log_file="logs/consistency_$(basename "$dataset_name" .pkl)_${ks}_${kg}_${kt}.log"
-    #       if [[ ! -s "$log_file" || "$(cat "$log_file")" != "success" ]]; then
-    #         python generate_df_consistencia.py $ks $kg $kt $dataset_name > "$log_file" 2>&1 &
-    #         job_count=$((job_count + 1))
-    #         [[ $job_count -ge $MAX_PARALLEL_JOBS ]] && wait && job_count=0
-    #       fi
-    #     done
-    #   done
-    # done
+    for ks in "${ks_values[@]}"; do
+      for kg in "${kg_values[@]}"; do
+        for kt in "${kt_values[@]}"; do
+          log_file="logs/consistency_$(basename "$dataset_name" .pkl)_${ks}_${kg}_${kt}.log"
+          if [[ ! -s "$log_file" || "$(cat "$log_file")" != "success" ]]; then
+            python generate_df_consistencia.py $ks $kg $kt $dataset_name > "$log_file" 2>&1 &
+            job_count=$((job_count + 1))
+            [[ $job_count -ge $MAX_PARALLEL_JOBS ]] && wait && job_count=0
+          fi
+        done
+      done
+    done
 
-    # for kpca in "${kpca_values[@]}"; do
-    #   log_file="logs/pca_$(basename "$dataset_name" .pkl)_${kpca}.log"
-    #   if [[ ! -s "$log_file" || "$(cat "$log_file")" != "success" ]]; then
-    #     python generate_df_pca.py $kpca $desired_dimensionality $dataset_name > "$log_file" 2>&1 &
-    #     job_count=$((job_count + 1))
-    #     [[ $job_count -ge $MAX_PARALLEL_JOBS ]] && wait && job_count=0
-    #   fi
-    # done
+    for kpca in "${kpca_values[@]}"; do
+      log_file="logs/pca_$(basename "$dataset_name" .pkl)_${kpca}.log"
+      if [[ ! -s "$log_file" || "$(cat "$log_file")" != "success" ]]; then
+        python generate_df_pca.py $kpca $desired_dimensionality $dataset_name > "$log_file" 2>&1 &
+        job_count=$((job_count + 1))
+        [[ $job_count -ge $MAX_PARALLEL_JOBS ]] && wait && job_count=0
+      fi
+    done
 
-    # for ktsne in "${ktsne_values[@]}"; do
-    #   for ppxty in "${ppxty_values[@]}"; do
-    #     log_file="logs/tsne_$(basename "$dataset_name" .pkl)_${ktsne}_${ppxty}.log"
+    for ktsne in "${ktsne_values[@]}"; do
+      for ppxty in "${ppxty_values[@]}"; do
+        log_file="logs/tsne_$(basename "$dataset_name" .pkl)_${ktsne}_${ppxty}.log"
         
-    #     if [[ ! -s "$log_file" || "$(tail -n 1 "$log_file")" != "success" ]]; then
-    #       python generate_df_tsne.py $ktsne $ppxty $desired_dimensionality $rnd_state $dataset_name > "$log_file" 2>&1 &
-    #       job_count=$((job_count + 1))
-    #       [[ $job_count -ge $MAX_PARALLEL_JOBS ]] && wait && job_count=0
-    #     fi
-    #   done
-    # done
+        if [[ ! -s "$log_file" || "$(tail -n 1 "$log_file")" != "success" ]]; then
+          python generate_df_tsne.py $ktsne $ppxty $desired_dimensionality $rnd_state $dataset_name > "$log_file" 2>&1 &
+          job_count=$((job_count + 1))
+          [[ $job_count -ge $MAX_PARALLEL_JOBS ]] && wait && job_count=0
+        fi
+      done
+    done
 
     for kumap in "${kumap_values[@]}"; do
       for umap_neighbors in "${umap_neighbors_values[@]}"; do

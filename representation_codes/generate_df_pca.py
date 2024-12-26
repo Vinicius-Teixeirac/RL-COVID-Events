@@ -1,54 +1,48 @@
 from pathlib import Path
 import argparse
-import pandas as pd
 import numpy as np
 import networkx as nx
 import os
-
-""" Getting the hiperparameters for the experiments
-
-"""
-
-parser = argparse.ArgumentParser(description ='Get the specifications')
-
-parser.add_argument('hyperparameters', metavar='N', type=int, nargs=2,
-                    help='two integer hyperparameters: k_pca, desired_dimensionality')
-
-
-parser.add_argument('dataset_path', type=str, 
-                    help='The name of the dataset file') 
-
-args = parser.parse_args()
-k_pca, desired_dimensionality = args.hyperparameters
-
-dataset_path = args.dataset_path
-dataset_name = os.path.basename(dataset_path)
-
-output_dir = "./results/pca"
-Path(output_dir).mkdir(parents=True, exist_ok=True)
-
-dataset = pd.read_pickle(f"{dataset_path}")
-
-R_f_scaled = np.load(f'./representations/{dataset_name[:-4]}_representations.npy')
-
-""" Applying PCA
-
-"""
-
 from sklearn.decomposition import PCA
 from sklearn.neighbors import kneighbors_graph
+import pickle
+
+def get_pca_graph(representation: np.array, k: int, dim: int) -> np.array:
+    pca = PCA(n_components=dim)
+    pca.fit(representation)
+    representation_PCA = pca.transform(representation)
+
+    A_PCA = kneighbors_graph(representation_PCA, k, mode='connectivity').toarray()
+    
+    return A_PCA
 
 
-pca = PCA(n_components=desired_dimensionality)
-pca.fit(R_f_scaled)
-R_f_PCA = pca.transform(R_f_scaled)
+if __name__ == "__main__":
 
-A_PCA = kneighbors_graph(R_f_PCA, k_pca, mode='connectivity').toarray()
+    output_dir = "./results/pca"
+    Path(output_dir).mkdir(parents=True, exist_ok=True)
+    
+    parser = argparse.ArgumentParser(description ='Generate the PCA graphs')
+    parser.add_argument('--hyperparameters',  type=int, nargs=2, 
+                            help='Number of neighbors in PCA graph, desired dimensionality: k_pca, desired_dimensionality')
+    parser.add_argument('--dataset_path', type=str, help='The name of the current dataset file') 
 
-G_PCA =  nx.Graph(A_PCA)
+    args = parser.parse_args()
+    k_pca, desired_dimensionality = args.hyperparameters
 
-df_PCA = pd.DataFrame([str(edge) for edge in G_PCA.edges()], columns=['Edges'])
+    dataset_path = args.dataset_path
+    dataset_name = os.path.basename(dataset_path)
 
-df_PCA.to_parquet(f'{output_dir}/df_pca_{dataset_name[:-4]}_k={k_pca}.parquet')
+    R_f_scaled = np.load(f'./representations/{dataset_name[:-4]}_representations.npy')
 
-print('success', flush=True)
+    A_PCA = get_pca_graph(R_f_scaled, k_pca, desired_dimensionality)
+
+    G_PCA =  nx.DiGraph(A_PCA)
+
+    edges = set(G_PCA.edges())
+    output_file = f"{output_dir}/edges_PCA_{dataset_name[:-4]}_{k_pca}.pkl"
+    
+    with open(output_file, 'wb') as f:
+        pickle.dump(edges, f)
+    
+    print(f"Edges saved successfully to {output_file}", flush=True)

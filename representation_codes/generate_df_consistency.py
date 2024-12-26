@@ -23,7 +23,7 @@ if __name__ == "__main__":
     output_dir = "./RL-COVID-EVENTS/Results/Consistency"
     Path(output_dir).mkdir(parents=True, exist_ok=True)
     
-    parser = argparse.ArgumentParser(description ='Generate the consistency datasets')
+    parser = argparse.ArgumentParser(description ='Generate the reference graphs')
     parser.add_argument('--hyperparameters',  type=int, nargs=3, 
 						help='Number of neighbors for semantic, geographical and temporal neighbors graph: k_s, k_g, k_t')
     parser.add_argument('--dataset_path', type=str, help='The name of the current dataset file') 

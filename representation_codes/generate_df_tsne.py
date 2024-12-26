@@ -1,53 +1,50 @@
 from pathlib import Path
 import argparse
-import pandas as pd
 import numpy as np
 import networkx as nx
 import os
-
-""" Getting the hiperparameters for the experiments
-
-"""
-
-parser = argparse.ArgumentParser(description ='Get the specifications')
-
-parser.add_argument('hyperparameters', metavar='N', type=int, nargs=4,
-                    help='four integer hyperparameters: k_TSNE, ppxty, desired_dimentionality, rnd_state')
-
-
-parser.add_argument('dataset_path', type=str, 
-                    help='The name of the dataset file') 
-
-args = parser.parse_args()
-k_TSNE, ppxty, desired_dimensionality, rnd_state = args.hyperparameters
-
-dataset_path = args.dataset_path
-dataset_name = os.path.basename(dataset_path)
-
-output_dir = "./results/tsne"
-Path(output_dir).mkdir(parents=True, exist_ok=True)
-
-dataset = pd.read_pickle(f"{dataset_path}")
-
-R_f_scaled = np.load(f'./representations/{dataset_name[:-4]}_representations.npy')
-
-""" Applying T-SNE
-
-"""
-
 from sklearn.manifold import TSNE
 from sklearn.neighbors import kneighbors_graph
+import pickle
+
+def get_tSNE_graph(representation: np.array,  k: int, perplexity: int, dim: int, random_state: int) -> np.array:
+    tsne = TSNE(n_components=dim, perplexity=perplexity, random_state=random_state, metric='cosine') # which metric will we actually use?
+    tsne.fit(representation)
+    representation_tSNE = tsne.transform(representation) 
+
+    A_TSNE = kneighbors_graph(representation_tSNE, k, mode='connectivity').toarray()
+    
+    return A_TSNE
 
 
-R_f_TSNE = TSNE(n_components=desired_dimensionality, perplexity=ppxty, random_state=rnd_state, metric='cosine').fit_transform(R_f_scaled)
+if __name__ == "__main__":
 
-A_TSNE = kneighbors_graph(R_f_TSNE, k_TSNE, mode='connectivity').toarray()
+    output_dir = "./results/tsne"
+    Path(output_dir).mkdir(parents=True, exist_ok=True)
 
-G_TSNE =  nx.Graph(A_TSNE)
+    parser = argparse.ArgumentParser(description ='Generate the t-SNE graphs')
+    parser.add_argument('--hyperparameters',  type=int, nargs=4, 
+                            help='''Number of neighbors in t-SNE graph, perplexity, desired dimensionality, and random state: 
+                                    k_tsne, ppxty, desired_dimensionality, rnd_state''')
+    parser.add_argument('--dataset_path', type=str, help='The name of the current dataset file') 
 
-df_TSNE = pd.DataFrame([str(edge) for edge in G_TSNE.edges()], columns=['Edges'])
+    args = parser.parse_args()
+    k_tsne, ppxty, desired_dimensionality, rnd_state = args.hyperparameters
 
-df_TSNE.to_parquet(f'{output_dir}/df_TSNE_{dataset_name[:-4]}_k={k_TSNE}_ppxty={ppxty}.parquet')
+    dataset_path = args.dataset_path
+    dataset_name = os.path.basename(dataset_path)
 
-print('success', flush=True)
+    R_f_scaled = np.load(f'./representations/{dataset_name[:-4]}_representations.npy')
+
+    A_TSNE = get_tSNE_graph(R_f_scaled, k_tsne, ppxty, desired_dimensionality, rnd_state)
+
+    G_TSNE =  nx.DiGraph(A_TSNE)
+
+    edges = set(G_TSNE.edges())
+    output_file = f"{output_dir}/edges_tSNE_{dataset_name[:-4]}_{k_tsne}_{ppxty}.pkl"
+    
+    with open(output_file, 'wb') as f:
+        pickle.dump(edges, f)
+    
+    print(f"Edges saved successfully to {output_file}", flush=True)
 
