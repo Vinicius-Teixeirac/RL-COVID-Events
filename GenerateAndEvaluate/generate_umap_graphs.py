@@ -8,17 +8,17 @@ from umap import UMAP
 import networkx as nx
 from sklearn.neighbors import kneighbors_graph
 
-def get_UMAP_graph(representation: np.array, k:int, umap_neighbors: int, dim: int, min_dist: float, random_state: int) -> np.array:
-    reducer = UMAP(n_neighbors=umap_neighbors, n_components=dim, min_dist=min_dist, metric='cosine',
+def get_UMAP_adjacency(representation: np.array, k:int, umap_neighbors: int, dim: int, min_dist: float, random_state: int) -> np.array:
+    umap = UMAP(n_neighbors=umap_neighbors, n_components=dim, min_dist=min_dist, metric='cosine',
                    random_state=random_state)
 
-    reducer.fit(representation)
+    umap.fit(representation)
     
-    representation_UMAP = reducer.transform(representation)
+    representation_UMAP = umap.transform(representation)
 
-    A_UMAP = kneighbors_graph(representation_UMAP, k, mode='connectivity').toarray()
+    adj_matrix_umap = kneighbors_graph(representation_UMAP, k, mode='connectivity').toarray()
     
-    return A_UMAP
+    return adj_matrix_umap
 
 
 if __name__ == "__main__":
@@ -28,34 +28,38 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Generate the UMAP graphs')
 
     parser.add_argument('--int_hyperparameters', type=int, nargs=4,
-                        help='Four integer hyperparameters: k_UMAP, UMAP_n_neighbors, desired_dimensionality, rnd_state')
+                        help='Four integer hyperparameters: k_umap, umap_n_neighbors, desired_dimensionality, rnd_state')
 
     parser.add_argument('--float_hyperparameters', type=float, nargs=1,
                         help='One float hyperparameter: m_dist')
 
     parser.add_argument('--dataset_path', type=str, help='The name of the current dataset file') 
 
-
     args = parser.parse_args()
 
-    k_UMAP, UMAP_n_neighbors, desired_dimensionality, rnd_state = args.hyperparameters_int
+    k_umap, umap_n_neighbors, desired_dimensionality, rnd_state = args.hyperparameters_int
 
     m_dist = args.hyperparameters_float[0]
 
     dataset_path = args.dataset_path
-    dataset_name = os.path.basename(dataset_path)
+    dataset_name = os.path.splitext(os.path.basename(dataset_path))[0]
+    
+    representations_path = f"./DatasetRepresentations/{dataset_name}_representations.pkl"
 
-    R_f_scaled = np.load(f'./DatasetRepresentations/{dataset_name[:-4]}_representation.npy')
+    with open(representations_path, 'rb') as f:
+        representations = pickle.load(f)
+        
+    final_representation = representations['final']
 
-    A_UMAP = get_UMAP_graph(R_f_scaled, k_UMAP, UMAP_n_neighbors, desired_dimensionality, m_dist, rnd_state)
+    umap_adjacency = get_UMAP_adjacency(final_representation, k_umap, umap_n_neighbors, desired_dimensionality, m_dist, rnd_state)
 
-    G_UMAP =  nx.DiGraph(A_UMAP)
+    umap_graph =  nx.DiGraph(umap_adjacency)
 
-    edges = set(G_UMAP.edges())
-    output_file = f'{output_dir}/edges_umap_{dataset_name[:-4]}_neighbors={UMAP_n_neighbors}_k={k_UMAP}_min_dist={m_dist}.pkl'
+    umap_edges = set(umap_graph.edges())
+    output_file = f'{output_dir}/umap_edges_{dataset_name}_{k_umap}_{umap_n_neighbors}_{m_dist}.pkl'
     
     with open(output_file, 'wb') as f:
-        pickle.dump(edges, f)
+        pickle.dump(umap_edges, f)
     
     print(f"Edges saved successfully to {output_file}", flush=True)
 

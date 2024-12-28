@@ -8,14 +8,14 @@ import networkx as nx
 from sklearn.decomposition import PCA
 from sklearn.neighbors import kneighbors_graph
 
-def get_pca_graph(representation: np.array, k: int, dim: int) -> np.array:
+def get_PCA_adjacency(representation: np.array, k: int, dim: int) -> np.array:
     pca = PCA(n_components=dim)
     pca.fit(representation)
     representation_PCA = pca.transform(representation)
 
-    A_PCA = kneighbors_graph(representation_PCA, k, mode='connectivity').toarray()
+    adj_matrix_pca = kneighbors_graph(representation_PCA, k, mode='connectivity').toarray()
     
-    return A_PCA
+    return adj_matrix_pca
 
 
 if __name__ == "__main__":
@@ -31,18 +31,23 @@ if __name__ == "__main__":
     k_pca, desired_dimensionality = args.hyperparameters
 
     dataset_path = args.dataset_path
-    dataset_name = os.path.basename(dataset_path)
+    dataset_name = os.path.splitext(os.path.basename(dataset_path))[0]
+    
+    representations_path = f"./DatasetRepresentations/{dataset_name}_representations.pkl"
 
-    R_f_scaled = np.load(f'./DatasetRepresentations/{dataset_name[:-4]}_representation.npy')
+    with open(representations_path, 'rb') as f:
+        representations = pickle.load(f)
+        
+    final_representation = representations['final']
 
-    A_PCA = get_pca_graph(R_f_scaled, k_pca, desired_dimensionality)
+    pca_adjacency = get_PCA_adjacency(final_representation, k_pca, desired_dimensionality)
+    
+    pca_graph =  nx.DiGraph(pca_adjacency)
 
-    G_PCA =  nx.DiGraph(A_PCA)
-
-    edges = set(G_PCA.edges())
-    output_file = f"{output_dir}/edges_pca_{dataset_name[:-4]}_{k_pca}.pkl"
+    pca_edges = set(pca_graph.edges())
+    output_file = f"{output_dir}/pca_edges_{dataset_name}_{k_pca}.pkl"
     
     with open(output_file, 'wb') as f:
-        pickle.dump(edges, f)
+        pickle.dump(pca_edges, f)
     
     print(f"Edges saved successfully to {output_file}", flush=True)

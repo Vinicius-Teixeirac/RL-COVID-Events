@@ -7,24 +7,22 @@ import numpy as np
 import networkx as nx
 from sklearn.neighbors import kneighbors_graph
 
-from DataPreparation.generate_representations import get_representations
-
-
-def get_consistency_adjacency(R_s: np.array, R_g: np.array, R_t: np.array, k_s: int, k_g: int, k_t: int) -> np.array:
-    # these kneighbors_graphs are directed
-    A_s = kneighbors_graph(R_s, k_s, mode='connectivity',metric="cosine")
-    A_g = kneighbors_graph(R_g, k_g, mode='connectivity',metric="haversine")
-    A_t = kneighbors_graph(R_t, k_t, mode='connectivity',metric="euclidean")
+def get_consistency_adjacency(semantic_representation: np.array, geoespatial_representation: np.array,
+                              temporal_representation: np.array, k_s: int, k_g: int, k_t: int) -> np.array:
     
-    A_f = A_s.toarray() + A_g.toarray() + A_t.toarray()
-    A_f = np.where(A_f < 2, 0, 1) # we can do something as consider the reciprocity. Like if A + A^t = 2, then theres a edge
+    adj_matrix_semantic = kneighbors_graph(semantic_representation, k_s, mode='connectivity',metric="cosine")
+    adj_matrix_geoespatial = kneighbors_graph(geoespatial_representation, k_g, mode='connectivity',metric="haversine")
+    adj_matrix_temporal = kneighbors_graph(temporal_representation, k_t, mode='connectivity',metric="euclidean")
     
-    return A_f
+    adj_matrix_final = adj_matrix_semantic.toarray() + adj_matrix_geoespatial.toarray() + adj_matrix_temporal.toarray()
+    adj_matrix_final = np.where(adj_matrix_final < 2, 0, 1) # we can do something as consider the reciprocity. Like if A + A^t = 2, then theres a edge
+    
+    return adj_matrix_final
 
 
 if __name__ == "__main__":
-    output_dir = "./GeneratedGraphs/Consistency"
-    Path(output_dir).mkdir(parents=True, exist_ok=True)
+    output_dir = "./GeneratedGraphs/Consistency" 
+    Path(output_dir).mkdir(parents=True, exist_ok=True) # just making sure the directory exists ... can be made in .sh but it seems caution to do it here
     
     parser = argparse.ArgumentParser(description ='Generate the reference graphs')
     parser.add_argument('--hyperparameters',  type=int, nargs=3, 
@@ -35,17 +33,23 @@ if __name__ == "__main__":
     k_s, k_g, k_t = args.hyperparameters
     dataset_path = args.dataset_path
  
-    dataset_name = os.path.basename(dataset_path)
-    R_s_norm, R_g, R_t, _ = get_representations(dataset_path)
+    dataset_name = os.path.splitext(os.path.basename(dataset_path))[0]
+    
+    representations_path = f"./DatasetRepresentations/{dataset_name}_representations.pkl"
 
-    A_f = get_consistency_adjacency(R_s_norm, R_g, R_t, k_s, k_g, k_t) # this graph is also directed...
+    with open(representations_path, 'rb') as f:
+        representations = pickle.load(f)
+    
+    semantic, geoespatial, temporal = representations['semantic'], representations['geoespatial'], representations['temporal']
 
-    G_consistency =  nx.DiGraph(A_f) # here, i should put nx.DiGraph()
+    consistency_adjacency = get_consistency_adjacency(semantic, geoespatial, temporal, k_s, k_g, k_t) # this graph is also directed...
 
-    edges = set(G_consistency.edges())
-    output_file = f"{output_dir}/edges_consistency_{dataset_name[:-4]}_{k_s}_{k_g}_{k_t}.pkl"
+    consistency_graph =  nx.DiGraph(consistency_adjacency) # here, i should put nx.DiGraph()
+
+    consistency_edges = set(consistency_graph.edges())
+    output_file = f"{output_dir}/consistency_edges_{dataset_name}_{k_s}_{k_g}_{k_t}.pkl"
     
     with open(output_file, 'wb') as f:
-        pickle.dump(edges, f)
+        pickle.dump(consistency_edges, f)
     
     print(f"Edges saved successfully to {output_file}", flush=True)

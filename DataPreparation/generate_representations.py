@@ -1,4 +1,5 @@
 import os
+import pickle
 import argparse
 from pathlib import Path
 
@@ -6,33 +7,39 @@ import numpy as np
 import pandas as pd
 from sklearn.preprocessing import normalize, StandardScaler
 
-def get_representations(dataset_name):
-    dataset = pd.read_pickle(dataset_name)
+def get_representations(dataset_path):
+    dataset = pd.read_pickle(dataset_path)
 
-    # R_s - Semantic Representation
-    R_s = np.array(dataset['embeddings'].to_list())
-    R_s_norm = normalize(R_s, norm="l2")
+    # sematic - Semantic Representation
+    sematic = np.array(dataset['embeddings'].to_list())
+    sematic_l2 = normalize(sematic, norm="l2")
 
-    # R_g - Geospatial Representation
-    R_g = np.array(dataset[['country_lat', 'country_lng']])
+    # geoespatial - Geospatial Representation
+    geoespatial = np.array(dataset[['country_lat', 'country_lng']])
 
-    # R_t - Temporal Representation
+    # temporal - Temporal Representation
     dataset['dates'] = pd.to_datetime(dataset['dates'])
-    
     minimal_date = min(dataset['dates'])
-
     time_delta = [(d - minimal_date).days for d in dataset['dates']]
-    
     dataset['date_timediff'] = time_delta
+    temporal = np.array(dataset[['date_timediff']])
+
+    # Concatenate representations
+    combined = np.concatenate((sematic_l2, geoespatial, temporal), axis=1)
     
-    R_t = np.array(dataset[['date_timediff']])
-
-    # Concatenate and scale
-    R_f = np.concatenate((R_s_norm, R_g, R_t), axis=1)
+    # scale then to get the final representation
     scaler = StandardScaler()
-    R_f_scaled = scaler.fit_transform(R_f)
+    final = scaler.fit_transform(combined)
+    
+    # save them in a dictonary to a more modular approach (i think)
+    representations = {
+        'semantic': sematic_l2,
+        'geospatial': geoespatial,
+        'temporal': temporal,
+        'final': final
+    }
 
-    return R_s_norm, R_g, R_t, R_f_scaled
+    return representations
 
 
 # main so i can run it independently 
@@ -52,8 +59,14 @@ if __name__ == "__main__":
     dataset_path = args.dataset
     output_dir = args.output_dir
 
-    dataset_name = os.path.basename(dataset_path)[:-4]
-    _, _, _, R_f_scaled = get_representations(dataset_path)
-    
+    dataset_name = os.path.splitext(os.path.basename(dataset_path))[0]
+
+    representations = get_representations(dataset_path)
+        
     Path(output_dir).mkdir(parents=True, exist_ok=True)
-    np.save(f"{output_dir}/{dataset_name}_representation.npy", R_f_scaled)
+    output_file = f"{output_dir}/{dataset_name}_representations.pkl"
+
+    with open(output_file, 'wb') as f:
+        pickle.dump(representations, f)
+
+    print(f"Representations saved to {output_file}")
