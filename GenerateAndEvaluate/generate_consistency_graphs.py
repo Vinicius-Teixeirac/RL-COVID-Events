@@ -7,15 +7,17 @@ import numpy as np
 import networkx as nx
 from sklearn.neighbors import kneighbors_graph
 
-def get_consistency_adjacency(semantic_representation: np.array, geoespatial_representation: np.array,
+def get_consistency_adjacency(semantic_representation: np.array, geospatial_representation: np.array,
                               temporal_representation: np.array, k_s: int, k_g: int, k_t: int) -> np.array:
-    
+    # get each k-neighbors from representations
     adj_matrix_semantic = kneighbors_graph(semantic_representation, k_s, mode='connectivity',metric="cosine")
-    adj_matrix_geoespatial = kneighbors_graph(geoespatial_representation, k_g, mode='connectivity',metric="haversine")
+    adj_matrix_geospatial = kneighbors_graph(geospatial_representation, k_g, mode='connectivity',metric="haversine")
     adj_matrix_temporal = kneighbors_graph(temporal_representation, k_t, mode='connectivity',metric="euclidean")
     
-    adj_matrix_final = adj_matrix_semantic.toarray() + adj_matrix_geoespatial.toarray() + adj_matrix_temporal.toarray()
-    adj_matrix_final = np.where(adj_matrix_final < 2, 0, 1) # we can do something as consider the reciprocity. Like if A + A^t = 2, then theres a edge
+    # sum up the k-neighbors graphs and define the consistency neighborhood
+    # The instances are neighbors in consistency if they are neighbors in two or three representations
+    adj_matrix_final = adj_matrix_semantic.toarray() + adj_matrix_geospatial.toarray() + adj_matrix_temporal.toarray()
+    adj_matrix_final = np.where(adj_matrix_final <= 2, 0, 1) # we can do something as consider the reciprocity. Like if A + A^t = 2, then theres a edge
     
     return adj_matrix_final
 
@@ -40,9 +42,9 @@ if __name__ == "__main__":
     with open(representations_path, 'rb') as f:
         representations = pickle.load(f)
     
-    semantic, geoespatial, temporal = representations['semantic'], representations['geoespatial'], representations['temporal']
+    semantic, geospatial, temporal = representations['semantic'], representations['geospatial'], representations['temporal']
 
-    consistency_adjacency = get_consistency_adjacency(semantic, geoespatial, temporal, k_s, k_g, k_t) # this graph is also directed...
+    consistency_adjacency = get_consistency_adjacency(semantic, geospatial, temporal, k_s, k_g, k_t) # this graph is also directed...
 
     consistency_graph =  nx.DiGraph(consistency_adjacency) # here, i should put nx.DiGraph()
 

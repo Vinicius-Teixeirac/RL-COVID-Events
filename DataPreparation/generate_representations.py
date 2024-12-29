@@ -14,8 +14,8 @@ def get_representations(dataset_path):
     sematic = np.array(dataset['embeddings'].to_list())
     sematic_l2 = normalize(sematic, norm="l2")
 
-    # geoespatial - Geospatial Representation
-    geoespatial = np.array(dataset[['country_lat', 'country_lng']])
+    # geospatial - Geospatial Representation
+    geospatial = np.array(dataset[['country_lat', 'country_lng']])
 
     # temporal - Temporal Representation
     dataset['dates'] = pd.to_datetime(dataset['dates'])
@@ -25,7 +25,7 @@ def get_representations(dataset_path):
     temporal = np.array(dataset[['date_timediff']])
 
     # Concatenate representations
-    combined = np.concatenate((sematic_l2, geoespatial, temporal), axis=1)
+    combined = np.concatenate((sematic_l2, geospatial, temporal), axis=1)
     
     # scale then to get the final representation
     scaler = StandardScaler()
@@ -34,7 +34,7 @@ def get_representations(dataset_path):
     # save them in a dictonary to a more modular approach (i think)
     representations = {
         'semantic': sematic_l2,
-        'geospatial': geoespatial,
+        'geospatial': geospatial,
         'temporal': temporal,
         'final': final
     }
@@ -42,14 +42,6 @@ def get_representations(dataset_path):
     return representations
 
 
-# main so i can run it independently 
-"""
-in windows i've did 
-foreach ($file in Get-ChildItem -Path "data_steps\resultant_datasets\*") {
-     echo "Processing file: $file"
-     python3 data_steps\get_representations.py $file  
-}
-"""
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Generate scaled representations from a dataset.")
     parser.add_argument("--dataset", type=str, help="Path to the dataset (Pickle file).")

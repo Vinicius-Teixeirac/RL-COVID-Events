@@ -9,12 +9,15 @@ from sklearn.decomposition import PCA
 from sklearn.neighbors import kneighbors_graph
 
 def get_PCA_adjacency(representation: np.array, k: int, dim: int) -> np.array:
+    # defines PCA
     pca = PCA(n_components=dim)
+    # fits it to representation
     pca.fit(representation)
+    # get the new transformed space
     representation_PCA = pca.transform(representation)
-
+    # defines the k-neighbors graph
     adj_matrix_pca = kneighbors_graph(representation_PCA, k, mode='connectivity').toarray()
-    
+    # returns its adjacency
     return adj_matrix_pca
 
 

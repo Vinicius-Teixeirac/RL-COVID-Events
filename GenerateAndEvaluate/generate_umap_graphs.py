@@ -9,15 +9,16 @@ import networkx as nx
 from sklearn.neighbors import kneighbors_graph
 
 def get_UMAP_adjacency(representation: np.array, k:int, umap_neighbors: int, dim: int, min_dist: float, random_state: int) -> np.array:
-    umap = UMAP(n_neighbors=umap_neighbors, n_components=dim, min_dist=min_dist, metric='cosine',
+    # defines UMAP 
+    umap = UMAP(n_neighbors=umap_neighbors, n_components=dim, min_dist=min_dist, metric='euclidean',
                    random_state=random_state)
-
+    # fits it to the representation 
     umap.fit(representation)
-    
+    # get the new transformed space
     representation_UMAP = umap.transform(representation)
-
+    # defines the k-neighbors graph
     adj_matrix_umap = kneighbors_graph(representation_UMAP, k, mode='connectivity').toarray()
-    
+    # returns its adjacency
     return adj_matrix_umap
 
 

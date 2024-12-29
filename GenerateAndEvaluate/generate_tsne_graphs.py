@@ -9,12 +9,15 @@ from sklearn.manifold import TSNE
 from sklearn.neighbors import kneighbors_graph
 
 def get_tSNE_adjacency(representation: np.array,  k: int, perplexity: int, dim: int, random_state: int) -> np.array:
-    tsne = TSNE(n_components=dim, perplexity=perplexity, random_state=random_state, metric='cosine') # which metric will we actually use?
+    # defines t-SNE
+    tsne = TSNE(n_components=dim, perplexity=perplexity, random_state=random_state, metric='euclidean')
+    # fits it to the representation
     tsne.fit(representation)
+    # get the new transformed space
     representation_tSNE = tsne.transform(representation) 
-
+    # defines the k-neighbors graph
     adj_matrix_tsne = kneighbors_graph(representation_tSNE, k, mode='connectivity').toarray()
-    
+    # returns its adjacency   
     return adj_matrix_tsne
 
 
