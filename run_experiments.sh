@@ -55,7 +55,7 @@ job_count=10
 
 for dataset_name in "${datasets[@]}"; do
   {
-    python DataPreparation/generate_representations.py "$dataset_name"
+    python DataPreparation/generate_representations.py --dataset "$dataset_name" --output_dir DatasetRepresentations
 
     num_rows=$(python -c "import pandas as pd; print(len(pd.read_pickle('$dataset_name')))")    
     read -r -a hyperparams < <(generate_hyperparams "$num_rows")
@@ -74,7 +74,7 @@ for dataset_name in "${datasets[@]}"; do
         for kt in "${kt_values[@]}"; do
           log_file="logs/consistency_$(basename "$dataset_name" .pkl)_${ks}_${kg}_${kt}.log"
           if [[ ! -s "$log_file" || ! $(grep -q "Edges saved successfully" "$log_file") ]]; then
-            python generate_consistency_graphs.py $ks $kg $kt $dataset_name > "$log_file" 2>&1 &
+            python GenerateAndEvaluate/generate_consistency_graphs.py --hyperparameters $ks $kg $kt --dataset_path "$dataset_name" > "$log_file" 2>&1 &
             job_count=$((job_count + 1))
             [[ $job_count -ge $MAX_PARALLEL_JOBS ]] && wait && job_count=0
           fi
@@ -84,9 +84,9 @@ for dataset_name in "${datasets[@]}"; do
 
     # PCA Graphs
     for kpca in "${kpca_values[@]}"; do
-      log_file="logs/pca_$(basename "$dataset_name" .pkl)_${kpca}.log"
+      log_file="logs/pca_$(basename ""$dataset_name"" .pkl)_${kpca}.log"
       if [[ ! -s "$log_file" || ! $(grep -q "Edges saved successfully" "$log_file") ]]; then
-        python generate_pca_graphs.py $kpca $desired_dimensionality $dataset_name > "$log_file" 2>&1 &
+        python GenerateAndEvaluate/generate_pca_graphs.py --hyperparameters $kpca $desired_dimensionality --dataset_path "$dataset_name" > "$log_file" 2>&1 &
         job_count=$((job_count + 1))
         [[ $job_count -ge $MAX_PARALLEL_JOBS ]] && wait && job_count=0
       fi
@@ -97,7 +97,7 @@ for dataset_name in "${datasets[@]}"; do
       for ppxty in "${ppxty_values[@]}"; do
         log_file="logs/tsne_$(basename "$dataset_name" .pkl)_${ktsne}_${ppxty}.log"
         if [[ ! -s "$log_file" || ! $(grep -q "Edges saved successfully" "$log_file") ]]; then
-          python generate_tsne_graphs.py $ktsne $ppxty $desired_dimensionality $rnd_state $dataset_name > "$log_file" 2>&1 &
+          python GenerateAndEvaluate/generate_tsne_graphs.py --hyperparameters $ktsne $ppxty $desired_dimensionality $rnd_state --dataset_path "$dataset_name" > "$log_file" 2>&1 &
           job_count=$((job_count + 1))
           [[ $job_count -ge $MAX_PARALLEL_JOBS ]] && wait && job_count=0
         fi
@@ -110,7 +110,7 @@ for dataset_name in "${datasets[@]}"; do
         for min_dist in "${min_dist_values[@]}"; do
           log_file="logs/umap_$(basename "$dataset_name" .pkl)_${kumap}_${umap_neighbors}_${min_dist}.log"
           if [[ ! -s "$log_file" || ! $(grep -q "Edges saved successfully" "$log_file") ]]; then
-            python generate_umap_graphs.py $kumap $umap_neighbors $desired_dimensionality $rnd_state $min_dist $dataset_name > "$log_file" 2>&1 &
+            python GenerateAndEvaluate/generate_umap_graphs.py --int_hyperparameters $kumap $umap_neighbors $desired_dimensionality $rnd_state --float_hyperparameters $min_dist --dataset_path"$dataset_name" > "$log_file" 2>&1 &
             job_count=$((job_count + 1))
             [[ $job_count -ge $MAX_PARALLEL_JOBS ]] && wait && job_count=0
           fi
@@ -118,11 +118,7 @@ for dataset_name in "${datasets[@]}"; do
       done
     done
 
-    # Evaluate Representations
-    log_file="logs/evaluate_representations.log"
-    if [[ ! -s "$log_file" || ! $(grep -q "Evaluation completed successfully" "$log_file") ]]; then
-      python evaluate_representations.py > "$log_file" 2>&1
-    fi
+    echo "Process for dataset $(basename "$dataset_name" .pkl) completed successfully!" >> logs/success.log
 
   } &
 
@@ -131,4 +127,13 @@ for dataset_name in "${datasets[@]}"; do
 
 done
 
+# Evaluate Representations
+log_file="logs/evaluate_representations.log"
+if [[ ! -s "$log_file" || ! $(grep -q "Evaluation completed successfully" "$log_file") ]]; then
+  python GenerateAndEvaluate/evaluate_representations.py > "$log_file" 2>&1
+fi
+
+echo "All processes completed successfully!" >> logs/success.log
+
 wait
+
