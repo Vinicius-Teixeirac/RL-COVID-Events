@@ -59,3 +59,5 @@ if __name__ == "__main__":
     compare_graphs(reference_folder, pca_folder, "PCA", output_dir)
     compare_graphs(reference_folder, tsne_folder, "TSNE", output_dir)
     compare_graphs(reference_folder, umap_folder, "UMAP", output_dir)
+    print("Evaluation completed successfully", flush=True)
+
