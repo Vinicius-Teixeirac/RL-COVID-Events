@@ -2,7 +2,8 @@
 
 mkdir -p logs
 
-dataset_dir="./datasets"
+dataset_dir="DataPreparation/UsageDatasets"
+
 datasets=("$dataset_dir"/*.pkl)
 
 ppxty_values=(5 10 20 30 40 50)
@@ -51,11 +52,11 @@ generate_hyperparams() {
 }
 
 
-job_count=0
+job_count=10
 
 for dataset_name in "${datasets[@]}"; do
   {
-    python get_representations.py "$dataset_name"
+    python DataPreparation/generate_representations.py "$dataset_name"
 
     num_rows=$(python -c "import pandas as pd; print(len(pd.read_pickle('$dataset_name')))")
     read -r -a hyperparams < <(generate_hyperparams "$num_rows")
@@ -73,7 +74,7 @@ for dataset_name in "${datasets[@]}"; do
         for kt in "${kt_values[@]}"; do
           log_file="logs/consistency_$(basename "$dataset_name" .pkl)_${ks}_${kg}_${kt}.log"
           if [[ ! -s "$log_file" || "$(cat "$log_file")" != "success" ]]; then
-            python generate_df_consistencia.py $ks $kg $kt $dataset_name > "$log_file" 2>&1 &
+            python generate_consistency_graphs.py $ks $kg $kt $dataset_name > "$log_file" 2>&1 &
             job_count=$((job_count + 1))
             [[ $job_count -ge $MAX_PARALLEL_JOBS ]] && wait && job_count=0
           fi
@@ -84,7 +85,7 @@ for dataset_name in "${datasets[@]}"; do
     for kpca in "${kpca_values[@]}"; do
       log_file="logs/pca_$(basename "$dataset_name" .pkl)_${kpca}.log"
       if [[ ! -s "$log_file" || "$(cat "$log_file")" != "success" ]]; then
-        python generate_df_pca.py $kpca $desired_dimensionality $dataset_name > "$log_file" 2>&1 &
+        python generate_pca_graphs.py $kpca $desired_dimensionality $dataset_name > "$log_file" 2>&1 &
         job_count=$((job_count + 1))
         [[ $job_count -ge $MAX_PARALLEL_JOBS ]] && wait && job_count=0
       fi
@@ -95,7 +96,7 @@ for dataset_name in "${datasets[@]}"; do
         log_file="logs/tsne_$(basename "$dataset_name" .pkl)_${ktsne}_${ppxty}.log"
         
         if [[ ! -s "$log_file" || "$(tail -n 1 "$log_file")" != "success" ]]; then
-          python generate_df_tsne.py $ktsne $ppxty $desired_dimensionality $rnd_state $dataset_name > "$log_file" 2>&1 &
+          python generate_tsne_graphs.py $ktsne $ppxty $desired_dimensionality $rnd_state $dataset_name > "$log_file" 2>&1 &
           job_count=$((job_count + 1))
           [[ $job_count -ge $MAX_PARALLEL_JOBS ]] && wait && job_count=0
         fi
@@ -108,7 +109,7 @@ for dataset_name in "${datasets[@]}"; do
           log_file="logs/umap_$(basename "$dataset_name" .pkl)_${kumap}_${umap_neighbors}_${min_dist}.log"
 
           if [[ ! -s "$log_file" || "$(tail -n 1 "$log_file")" != "success" ]]; then
-            python generate_df_umap.py $kumap $umap_neighbors $desired_dimensionality $rnd_state $min_dist $dataset_name > "$log_file" 2>&1 &
+            python generate_umap_graphs.py $kumap $umap_neighbors $desired_dimensionality $rnd_state $min_dist $dataset_name > "$log_file" 2>&1 &
             job_count=$((job_count + 1))
             [[ $job_count -ge $MAX_PARALLEL_JOBS ]] && wait && job_count=0
           fi
