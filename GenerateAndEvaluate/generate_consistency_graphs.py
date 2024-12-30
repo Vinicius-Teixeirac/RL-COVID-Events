@@ -17,7 +17,7 @@ def get_consistency_adjacency(semantic_representation: np.array, geospatial_repr
     # sum up the k-neighbors graphs and define the consistency neighborhood
     # The instances are neighbors in consistency if they are neighbors in two or three representations
     adj_matrix_final = adj_matrix_semantic.toarray() + adj_matrix_geospatial.toarray() + adj_matrix_temporal.toarray()
-    adj_matrix_final = np.where(adj_matrix_final <= 2, 0, 1) # we can do something as consider the reciprocity. Like if A + A^t = 2, then theres a edge
+    adj_matrix_final = np.where(adj_matrix_final < 2, 0, 1) # we can do something as consider the reciprocity. Like if A + A^t = 2, then theres a edge
     
     return adj_matrix_final
 
