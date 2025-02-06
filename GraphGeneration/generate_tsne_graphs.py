@@ -1,5 +1,3 @@
-import os
-import pickle
 import argparse
 from pathlib import Path
 
@@ -8,17 +6,20 @@ import networkx as nx
 from sklearn.manifold import TSNE
 from sklearn.neighbors import kneighbors_graph
 
-def get_tSNE_adjacency(representation: np.array,  k: int, perplexity: int, dim: int, random_state: int) -> np.array:
+from utils import load_representation, save_edges
+
+def get_tSNE_matrix(representation: np.ndarray,  k: int, perplexity: int, dim: int, random_state: int) -> np.ndarray:
     # defines t-SNE
     tsne = TSNE(n_components=dim, perplexity=perplexity, random_state=random_state, metric='euclidean')
     # fits it to the representation
     tsne.fit(representation)
-    # get the new transformed space
+    # gets the new transformed space
     representation_tSNE = tsne.transform(representation) 
     # defines the k-neighbors graph
     adj_matrix_tsne = kneighbors_graph(representation_tSNE, k, mode='connectivity').toarray()
-    # returns its adjacency   
-    return adj_matrix_tsne
+    # gets the matrix
+    tsne_graph =  nx.DiGraph(adj_matrix_tsne)
+    return tsne_graph
 
 
 if __name__ == "__main__":
@@ -34,25 +35,9 @@ if __name__ == "__main__":
     args = parser.parse_args()
     k_tsne, ppxty, desired_dimensionality, rnd_state = args.hyperparameters
 
-    dataset_path = args.dataset_path
-    dataset_name = os.path.splitext(os.path.basename(dataset_path))[0]
-    
-    representations_path = f"./DatasetRepresentations/{dataset_name}_representations.pkl"
+    final_representation = load_representation(args.dataset_path, 'final')
+    tsne_graph = get_tSNE_matrix(final_representation, k_tsne, ppxty, desired_dimensionality, rnd_state)
 
-    with open(representations_path, 'rb') as f:
-        representations = pickle.load(f)
-        
-    final_representation = representations['final']
-
-    tsne_adjacency = get_tSNE_adjacency(final_representation, k_tsne, ppxty, desired_dimensionality, rnd_state)
-
-    tsne_graph =  nx.DiGraph(tsne_adjacency)
-
-    tsne_edges = set(tsne_graph.edges())
-    output_file = f"{output_dir}/tsne_edges_{dataset_name}_{k_tsne}_{ppxty}.pkl"
-    
-    with open(output_file, 'wb') as f:
-        pickle.dump(tsne_edges, f)
-    
-    print(f"Edges saved successfully to {output_file}", flush=True)
+    output_file = f"{output_dir}/tsne_edges_{Path(args.dataset_path).stem}_{k_tsne}_{ppxty}.pkl"
+    save_edges(tsne_graph, output_file)
 

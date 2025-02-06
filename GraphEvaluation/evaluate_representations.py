@@ -1,6 +1,7 @@
 import os
 import pickle
 from pathlib import Path
+from utils import load_edges
 
 
 def graph_edges_metrics(edges_predicted: set, ground_truth: set) -> tuple:
@@ -22,14 +23,10 @@ def compare_graphs(reference_folder: str, comparison_folder: str, method: str, o
     results = []
 
     for ref_file in reference_files:
-        ref_path = os.path.join(reference_folder, ref_file)
-        with open(ref_path, 'rb') as f:
-            ref_edges = pickle.load(f)
+        ref_edges = load_edges(reference_folder, ref_file)
 
         for comp_file in comparison_files:
-            comp_path = os.path.join(comparison_folder, comp_file)
-            with open(comp_path, 'rb') as f:
-                comp_edges = pickle.load(f)
+            comp_edges = load_edges(comparison_folder, comp_file)
 
             precision, recall = graph_edges_metrics(comp_edges, ref_edges)
             results.append({

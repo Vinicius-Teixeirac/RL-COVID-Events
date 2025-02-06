@@ -1,5 +1,3 @@
-import os
-import pickle
 import argparse
 from pathlib import Path
 
@@ -8,17 +6,20 @@ import networkx as nx
 from sklearn.decomposition import PCA
 from sklearn.neighbors import kneighbors_graph
 
-def get_PCA_adjacency(representation: np.array, k: int, dim: int) -> np.array:
+from utils import load_representation, save_edges
+
+def get_PCA_graph(representation: np.ndarray, k: int, dim: int) -> np.ndarray:
     # defines PCA
     pca = PCA(n_components=dim)
     # fits it to representation
     pca.fit(representation)
-    # get the new transformed space
+    # gets the new transformed space
     representation_PCA = pca.transform(representation)
-    # defines the k-neighbors graph
+    # defines the k-neighbors graph adjacency
     adj_matrix_pca = kneighbors_graph(representation_PCA, k, mode='connectivity').toarray()
-    # returns its adjacency
-    return adj_matrix_pca
+    # gets the matrix
+    pca_graph = nx.DiGraph(adj_matrix_pca)
+    return pca_graph
 
 
 if __name__ == "__main__":
@@ -32,25 +33,10 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
     k_pca, desired_dimensionality = args.hyperparameters
-
-    dataset_path = args.dataset_path
-    dataset_name = os.path.splitext(os.path.basename(dataset_path))[0]
     
-    representations_path = f"./DatasetRepresentations/{dataset_name}_representations.pkl"
+    final_representation = load_representation(args.dataset_path)
+    pca_graph = get_PCA_graph(final_representation, k_pca, desired_dimensionality)
 
-    with open(representations_path, 'rb') as f:
-        representations = pickle.load(f)
-        
-    final_representation = representations['final']
+    output_file = f"{output_dir}/pca_edges_{Path(args.dataset_path).stem}_{k_pca}.pkl"
+    save_edges(pca_graph, output_file)
 
-    pca_adjacency = get_PCA_adjacency(final_representation, k_pca, desired_dimensionality)
-    
-    pca_graph =  nx.DiGraph(pca_adjacency)
-
-    pca_edges = set(pca_graph.edges())
-    output_file = f"{output_dir}/pca_edges_{dataset_name}_{k_pca}.pkl"
-    
-    with open(output_file, 'wb') as f:
-        pickle.dump(pca_edges, f)
-    
-    print(f"Edges saved successfully to {output_file}", flush=True)
