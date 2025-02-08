@@ -1,4 +1,3 @@
-import os
 import pickle
 import argparse
 from pathlib import Path
@@ -41,7 +40,6 @@ def get_representations(dataset_path):
 
     return representations
 
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Generate scaled representations from a dataset.")
     parser.add_argument("--dataset", type=str, help="Path to the dataset (Pickle file).")
@@ -51,7 +49,7 @@ if __name__ == "__main__":
     dataset_path = args.dataset
     output_dir = args.output_dir
 
-    dataset_name = os.path.splitext(os.path.basename(dataset_path))[0]
+    dataset_name = Path(dataset_path).stem
 
     representations = get_representations(dataset_path)
         
