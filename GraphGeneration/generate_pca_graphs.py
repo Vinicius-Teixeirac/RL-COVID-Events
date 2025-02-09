@@ -8,7 +8,24 @@ from sklearn.neighbors import kneighbors_graph
 
 from utils import load_representation, save_edges
 
-def get_PCA_graph(representation: np.ndarray, k: int, dim: int) -> np.ndarray:
+def get_PCA_graph(representation: np.ndarray, k: int, dim: int) -> nx.DiGraph:
+    """
+    Generates a k-nearest neighbors graph using PCA-reduced representation.
+
+    Parameters
+    ----------
+    representation : np.ndarray
+        The input data representation (high-dimensional).
+    k : int
+        Number of nearest neighbors for the graph.
+    dim : int
+        Desired number of dimensions for PCA reduction.
+
+    Returns
+    -------
+    nx.DiGraph
+        A directed graph representing the k-nearest neighbors for each instance in the new reduced representation.
+    """
     # defines the PCA settings
     pca = PCA(n_components=dim)
     # fits it to representation
@@ -23,26 +40,29 @@ def get_PCA_graph(representation: np.ndarray, k: int, dim: int) -> np.ndarray:
     return pca_graph
 
 
-if __name__ == "__main__":
-    # creating the PCA generated graphs' directory to save results
-    output_dir = "./GeneratedGraphs/PCA"
-    Path(output_dir).mkdir(parents=True, exist_ok=True)
-    
+if __name__ == "__main__":    
     # parsing the arguments that'll be used on the PCA method
     parser = argparse.ArgumentParser(description ='Generate the PCA graphs')
     parser.add_argument('--hyperparameters',  type=int, nargs=2, 
-                            help='Number of neighbors in PCA graph, desired dimensionality: k_pca, desired_dimensionality')
-    parser.add_argument('--dataset_path', type=str, help='The name of the current dataset file')
+                            help='Number of neighbors in PCA graph, desired dimensionality: k_pca, dim')
+    parser.add_argument('--dataset_path', type=str, help='The path for the current dataset file')
+    parser.add_argument("--output_dir", type=str, default="./GeneratedGraphs/PCA", help="Directory to save the output.")
     args = parser.parse_args()
 
-    # acquiring from arguments the method's hyperparameters
-    k_pca, desired_dimensionality = args.hyperparameters
-    
-    # loading the representation and defining the PCA graph from it
-    final_representation = load_representation(args.dataset_path, 'final')
-    pca_graph = get_PCA_graph(final_representation, k_pca, desired_dimensionality)
+    # getting the dataset specifications
+    dataset_path = args.dataset_path
+    dataset_name = Path(dataset_path).stem
+    output_dir = args.output_dir
 
-    # defining the file's name and saving the representation 
-    output_file = f"{output_dir}/pca_edges_{Path(args.dataset_path).stem}_{k_pca}.pkl"
+    # acquiring from arguments the method's hyperparameters
+    k_pca, dim = args.hyperparameters
+    
+    # loading the representation and obtaining the PCA graph from it
+    final_representation = load_representation(dataset_path, 'final')
+    pca_graph = get_PCA_graph(final_representation, k_pca, dim)
+
+    # defining the file's name and saving the representation
+    Path(output_dir).mkdir(parents=True, exist_ok=True)  
+    output_file = f"{output_dir}/pca_edges_{dataset_name}_{k_pca}.pkl"
     save_edges(pca_graph, output_file)
 

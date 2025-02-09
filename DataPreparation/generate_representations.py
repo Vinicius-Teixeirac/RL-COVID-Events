@@ -1,4 +1,3 @@
-import pickle
 import argparse
 from pathlib import Path
 
@@ -6,12 +5,28 @@ import numpy as np
 import pandas as pd
 from sklearn.preprocessing import normalize, StandardScaler
 
-def get_representations(dataset_path):
+from utils import save_representations
+
+def get_representations(dataset_path: str)-> dict[str, np.ndarray]:
+    """
+    Generates the representations for each dataset.
+
+    Parameters
+    ----------
+    dataset_path : str
+        The path to the dataset to extract representations from
+    
+    Returns
+    -------
+    dict[str, np.array]
+        A dict with the semantic, geospatial and temporal representations, also with the final representation for the posterior 
+        reduction method
+    """
     dataset = pd.read_pickle(dataset_path)
 
     # sematic - Semantic Representation
     sematic = np.array(dataset['embeddings'].to_list())
-    sematic_l2 = normalize(sematic, norm="l2")
+    sematic_l2 = normalize(sematic, norm="l2") # l2 normed for stability in distance measures
 
     # geospatial - Geospatial Representation
     geospatial = np.array(dataset[['country_lat', 'country_lng']])
@@ -23,14 +38,14 @@ def get_representations(dataset_path):
     dataset['date_timediff'] = time_delta
     temporal = np.array(dataset[['date_timediff']])
 
-    # Concatenate representations
+    # Concatenates representations
     combined = np.concatenate((sematic_l2, geospatial, temporal), axis=1)
     
-    # scale then to get the final representation
+    # scales then to get the final representation
     scaler = StandardScaler()
     final = scaler.fit_transform(combined)
     
-    # save them in a dictonary to a more modular approach (i think)
+    # saves them in a dictonary to a more modular approach
     representations = {
         'semantic': sematic_l2,
         'geospatial': geospatial,
@@ -41,22 +56,16 @@ def get_representations(dataset_path):
     return representations
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Generate scaled representations from a dataset.")
-    parser.add_argument("--dataset", type=str, help="Path to the dataset (Pickle file).")
+    # parsing the arguments that'll be used on the representation extraction
+    parser = argparse.ArgumentParser(description="Generates scaled representations from a dataset.")
+    parser.add_argument("--dataset_path", type=str, help="Path to the dataset (Pickle file).")
     parser.add_argument("--output_dir", type=str, default="./DatasetRepresentations", help="Directory to save the output.")
     args = parser.parse_args()
     
-    dataset_path = args.dataset
-    output_dir = args.output_dir
-
+    # getting the dataset specifications
+    dataset_path = args.dataset_path
     dataset_name = Path(dataset_path).stem
-
+    
+    # Extract and save representations
     representations = get_representations(dataset_path)
-        
-    Path(output_dir).mkdir(parents=True, exist_ok=True)
-    output_file = f"{output_dir}/{dataset_name}_representations.pkl"
-
-    with open(output_file, 'wb') as f:
-        pickle.dump(representations, f)
-
-    print(f"Representations saved to {output_file}")
+    save_representations(representations, args.output_dir, dataset_name)

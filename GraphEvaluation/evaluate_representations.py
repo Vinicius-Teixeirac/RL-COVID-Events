@@ -1,6 +1,7 @@
 import os
 import pickle
 from pathlib import Path
+
 from utils import load_edges
 
 
@@ -16,6 +17,7 @@ def graph_edges_metrics(edges_predicted: set, ground_truth: set) -> tuple:
 
 
 def compare_graphs(reference_folder: str, comparison_folder: str, method: str, output_dir: str):
+    # 
     reference_files = sorted(os.listdir(reference_folder))
     comparison_files = sorted(os.listdir(comparison_folder))
     Path(output_dir).mkdir(parents=True, exist_ok=True)
@@ -47,12 +49,14 @@ def compare_graphs(reference_folder: str, comparison_folder: str, method: str, o
 
 
 if __name__ == "__main__":
+    # predefined folder names for the generated graphs
     reference_folder = "./GeneratedGraphs/Consistency"
     pca_folder = "./GeneratedGraphs/PCA"
     tsne_folder = "./GeneratedGraphs/TSNE"
     umap_folder = "./GeneratedGraphs/UMAP"
     output_dir = "./EvaluationResults"
 
+    # applying the comparsions and obtaining the results for each method against the reference (consistency graphs)
     compare_graphs(reference_folder, pca_folder, "PCA", output_dir)
     compare_graphs(reference_folder, tsne_folder, "TSNE", output_dir)
     compare_graphs(reference_folder, umap_folder, "UMAP", output_dir)

@@ -4,6 +4,16 @@ from typing import Union
 
 import numpy as np
 
+def save_representations(representations: dict[str, np.ndarray], output_dir: str, dataset_name: str):
+    Path(output_dir).mkdir(parents=True, exist_ok=True)
+    output_file = f"{output_dir}/{dataset_name}_representations.pkl"
+
+    with open(output_file, 'wb') as f:
+        pickle.dump(representations, f)
+    
+    print(f"Representations saved to {output_file}")
+
+
 def load_representation(dataset_path: str, target: str = None) -> Union[dict, np.ndarray]:
     dataset_name = Path(dataset_path).stem
     representations_path = f"./DatasetRepresentations/{dataset_name}_representations.pkl"
