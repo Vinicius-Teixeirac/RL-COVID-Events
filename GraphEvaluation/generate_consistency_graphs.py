@@ -7,6 +7,7 @@ from sklearn.neighbors import kneighbors_graph
 
 from utils import load_representation, save_edges
 
+
 def get_consistency_graph(semantic_representation: np.ndarray, geospatial_representation: np.ndarray,
                               temporal_representation: np.ndarray, k_s: int, k_g: int, k_t: int) -> nx.DiGraph:
     """
@@ -65,11 +66,10 @@ if __name__ == "__main__":
     k_s, k_g, k_t = args.hyperparameters
     
     # loading the representations to obtaining the consistency graph from them
-    representations = load_representation(dataset_path)
+    representations = load_representation(dataset_name)
     semantic, geospatial, temporal = representations['semantic'], representations['geospatial'], representations['temporal']
     consistency_graph = get_consistency_graph(semantic, geospatial, temporal, k_s, k_g, k_t) 
 
     # defining the file's name and saving the representation   
-    Path(output_dir).mkdir(parents=True, exist_ok=True) 
     output_file = f"{output_dir}/consistency_edges_{dataset_name}_{k_s}_{k_g}_{k_t}.pkl"
     save_edges(consistency_graph, output_file)

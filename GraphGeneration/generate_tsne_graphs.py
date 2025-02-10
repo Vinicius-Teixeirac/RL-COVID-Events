@@ -8,6 +8,7 @@ from sklearn.neighbors import kneighbors_graph
 
 from utils import load_representation, save_edges
 
+
 def get_tSNE_graph(representation: np.ndarray,  k: int, ppxty: int, dim: int, rnd_state: int) -> nx.DiGraph:
     """
     Generates a k-nearest neighbors graph using t-SNE-reduced representation.
@@ -63,11 +64,10 @@ if __name__ == "__main__":
     k_tsne, ppxty, dim, rnd_state = args.hyperparameters
 
     # loading the representation and obtaining the t-SNE graph from it
-    final_representation = load_representation(dataset_path, 'final')
+    final_representation = load_representation(dataset_name, 'final')
     tsne_graph = get_tSNE_graph(final_representation, k_tsne, ppxty, dim, rnd_state)
 
     # defining the file's name and saving the representation
-    Path(output_dir).mkdir(parents=True, exist_ok=True) 
     output_file = f"{output_dir}/tsne_edges_{dataset_name}_{k_tsne}_{ppxty}.pkl"
     save_edges(tsne_graph, output_file)
 

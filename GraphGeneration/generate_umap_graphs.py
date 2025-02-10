@@ -8,6 +8,7 @@ from sklearn.neighbors import kneighbors_graph
 
 from utils import load_representation, save_edges
 
+
 def get_UMAP_graph(representation: np.ndarray, k: int, n_neighbors: int, min_dist: float, dim: int, random_state: int) -> nx.DiGraph:
     """
     Generates a k-nearest neighbors graph using UMAP-reduced representation.
@@ -70,11 +71,10 @@ if __name__ == "__main__":
     min_dist = args.float_hyperparameters
 
     # loading the representation and obtaining the UMAP graph from it
-    final_representation = load_representation(dataset_path, 'final')
+    final_representation = load_representation(dataset_name, 'final')
     umap_graph = get_UMAP_graph(final_representation, k_umap, n_neighbors, min_dist, dim, rnd_state)
 
     # defining the file's name and saving the representation 
-    Path(output_dir).mkdir(parents=True, exist_ok=True) 
     output_file = f"{output_dir}/umap_edges_{dataset_name}_{k_umap}_{n_neighbors}_{min_dist}.pkl"
     save_edges(umap_graph, output_file)
 

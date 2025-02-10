@@ -8,6 +8,7 @@ from sklearn.neighbors import kneighbors_graph
 
 from utils import load_representation, save_edges
 
+
 def get_PCA_graph(representation: np.ndarray, k: int, dim: int) -> nx.DiGraph:
     """
     Generates a k-nearest neighbors graph using PCA-reduced representation.
@@ -58,11 +59,10 @@ if __name__ == "__main__":
     k_pca, dim = args.hyperparameters
     
     # loading the representation and obtaining the PCA graph from it
-    final_representation = load_representation(dataset_path, 'final')
+    final_representation = load_representation(dataset_name, 'final')
     pca_graph = get_PCA_graph(final_representation, k_pca, dim)
 
     # defining the file's name and saving the representation
-    Path(output_dir).mkdir(parents=True, exist_ok=True)  
     output_file = f"{output_dir}/pca_edges_{dataset_name}_{k_pca}.pkl"
     save_edges(pca_graph, output_file)
 

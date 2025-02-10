@@ -65,7 +65,8 @@ if __name__ == "__main__":
     # getting the dataset specifications
     dataset_path = args.dataset_path
     dataset_name = Path(dataset_path).stem
+    output_dir = args.output_dir
     
-    # Extract and save representations
+    # Extracting and saving representations
     representations = get_representations(dataset_path)
-    save_representations(representations, args.output_dir, dataset_name)
+    save_representations(representations, dataset_name, output_dir)
