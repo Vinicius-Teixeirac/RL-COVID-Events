@@ -1,11 +1,16 @@
+# too large file
 df_event_data_with_embeddings.pkl
+
+# unrelated files
 todo.md
 RL-COVID-EVENTS.code-workspace
 nohup.out
-logs
 
-# Ignore Python bytecode cache
+# Python bytecode cache
 __pycache__/
 *.pyc
 *.pyo
 
+# logs
+logs/
+*.log
