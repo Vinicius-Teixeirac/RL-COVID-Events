@@ -45,7 +45,7 @@ if __name__ == "__main__":
     # parsing the arguments that'll be used on the PCA method
     parser = argparse.ArgumentParser(description ='Generate the PCA graphs')
     parser.add_argument('--hyperparameters',  type=int, nargs=2, 
-                            help='Number of neighbors in PCA graph, desired dimensionality: k_pca, dim')
+                            help='Number of neighbors in PCA graph, desired dimensionality')
     parser.add_argument('--dataset_path', type=str, help='The path for the current dataset file')
     parser.add_argument("--output_dir", type=str, default="./GeneratedGraphs/PCA", help="Directory to save the output.")
     args = parser.parse_args()

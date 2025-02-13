@@ -33,7 +33,6 @@ def get_UMAP_graph(representation: np.ndarray, k: int, n_neighbors: int, min_dis
     nx.DiGraph
         A directed graph representing the k-nearest neighbors for each instance in the new reduced representation.
     """
-
     # defines the UMAP settings
     umap = UMAP(n_neighbors=n_neighbors, n_components=dim, min_dist=min_dist, metric='euclidean',
                    random_state=random_state)
@@ -55,7 +54,7 @@ if __name__ == "__main__":
     parser.add_argument('--int_hyperparameters', type=int, nargs=4,
                         help='''Four intergers arguments: Number of neighbors in UMAP graph, UMAP n_neighbors hyperparameter, 
                         desired dimensionality, and random state''')
-    parser.add_argument('--float_hyperparameters', type=float, nargs=1,
+    parser.add_argument('--float_hyperparameters', type=float,
                         help='One float hyperparameter: UMAP min_dist hyperparameter')
     parser.add_argument('--dataset_path', type=str, help='The path for the current dataset file')
     parser.add_argument("--output_dir", type=str, default="./GeneratedGraphs/UMAP", help="Directory to save the output.")

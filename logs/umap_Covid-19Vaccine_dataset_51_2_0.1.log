@@ -1,0 +1,14 @@
+/home/vtcfreitas/miniconda3/envs/RL-COVID-EVENTS/lib/python3.11/site-packages/sklearn/manifold/_spectral_embedding.py:329: UserWarning: Graph is not fully connected, spectral embedding may not work as expected.
+  warnings.warn(
+/home/vtcfreitas/miniconda3/envs/RL-COVID-EVENTS/lib/python3.11/site-packages/sklearn/manifold/_spectral_embedding.py:455: UserWarning: Exited at iteration 138 with accuracies 
+[2.62734948e-15 1.63539717e-05 3.87464996e-05 2.52618477e-05]
+not reaching the requested tolerance 2.6971101760864258e-05.
+Use iteration 95 instead with accuracy 
+1.7886901916939036e-05.
+
+  _, diffusion_map = lobpcg(
+/home/vtcfreitas/miniconda3/envs/RL-COVID-EVENTS/lib/python3.11/site-packages/sklearn/manifold/_spectral_embedding.py:455: UserWarning: Exited postprocessing with accuracies 
+[9.32887778e-16 1.08326672e-05 2.57222936e-05 3.49926469e-05]
+not reaching the requested tolerance 2.6971101760864258e-05.
+  _, diffusion_map = lobpcg(
+Edges saved successfully to ./GeneratedGraphs/UMAP/umap_edges_Covid-19Vaccine_dataset_51_2_0.1.pkl

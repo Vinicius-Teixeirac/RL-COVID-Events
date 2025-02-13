@@ -3,6 +3,8 @@ import pickle
 import argparse
 from pathlib import Path
 
+import pandas as pd
+
 from utils import load_edges
 
 
@@ -84,13 +86,16 @@ def compare_graphs(reference_folder: str, comparison_folder: str, method: str, o
             })
 
             print(f"Compared {ref_file} with {comp_file}: Precision={precision:.2f}, Recall={recall:.2f}")
+    
+    # Converts the results to a pandas DataFrame
+    structured_results = pd.DataFrame(results)
 
-    # Saves comparison results as a pickle file
-    results_file = os.path.join(output_dir, f"comparison_results_{method}.pkl")
-    with open(results_file, 'wb') as f:
-        pickle.dump(results, f)
+    # Saves the results as a Parquet file
+    results_file = os.path.join(output_dir, f"comparison_results_{method}.parquet")
+    structured_results.to_parquet(results_file, index=False)
 
     print(f"Comparison results saved to {results_file}")
+
 
 
 if __name__ == "__main__":

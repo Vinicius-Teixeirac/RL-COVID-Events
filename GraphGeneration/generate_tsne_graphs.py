@@ -33,10 +33,8 @@ def get_tSNE_graph(representation: np.ndarray,  k: int, ppxty: int, dim: int, rn
     """
     # defines the t-SNE settings 
     tsne = TSNE(n_components=dim, perplexity=ppxty, random_state=rnd_state, metric='euclidean')
-    # fits it to the representation
-    tsne.fit(representation)
     # gets the new transformed space
-    representation_tSNE = tsne.transform(representation) 
+    representation_tSNE = tsne.fit_transform(representation) 
     # defines the k-neighbors graph adjacency matrix
     adj_matrix_tsne = kneighbors_graph(representation_tSNE, k, mode='connectivity').toarray()
     # obtains the graph (as a nx.digraph) from its adjacency
