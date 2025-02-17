@@ -9,7 +9,12 @@ from sklearn.neighbors import kneighbors_graph
 from utils import load_representation, save_edges
 
 
-def get_UMAP_graph(representation: np.ndarray, k: int, n_neighbors: int, min_dist: float, dim: int, random_state: int) -> nx.DiGraph:
+def get_UMAP_graph(representation: np.ndarray,
+                   k: int,
+                   n_neighbors: int,
+                   min_dist: float,
+                   dim: int,
+                   random_state: int) -> nx.DiGraph:
     """
     Generates a k-nearest neighbors graph using UMAP-reduced representation.
 
@@ -32,19 +37,32 @@ def get_UMAP_graph(representation: np.ndarray, k: int, n_neighbors: int, min_dis
     -------
     nx.DiGraph
         A directed graph representing the k-nearest neighbors for each instance in the new reduced representation.
+
+    Raises
+    ------
+    ValueError
+        If `k`, `n_neighbors` `dim` are not positive integers, or if `dim` is greater than the number of features in `representation`.
     """
+    # Validates inputs
+    if k <= 0 or n_neighbors<=1 or dim <= 0:
+        raise ValueError("k-value, n_neighbors and dimension must be positive integers.")
+
+    if dim > representation.shape[1]:
+        raise ValueError(f"dim ({dim}) cannot be greater than the number of features in representation ({representation.shape[1]}).")
+
     # defines the UMAP settings
     umap = UMAP(n_neighbors=n_neighbors, n_components=dim, min_dist=min_dist, metric='euclidean',
-                   random_state=random_state)
+                   random_state=random_state, init='pca')
     # fits it to the representation 
     umap.fit(representation)
     # gets the new transformed space
     representation_UMAP = umap.transform(representation)
-    # defines the k-neighbors graph adjacency matrix
-    adj_matrix_umap = kneighbors_graph(representation_UMAP, k, mode='connectivity').toarray()
-    # obtains the graph (as a nx.digraph) from its adjacency
-    umap_graph =  nx.DiGraph(adj_matrix_umap)
-    # returns the k-neighbors graph as a networkx object
+    
+    # Constructs k-nearest neighbors graph (returns a sparse matrix)
+    adj_matrix_umap = kneighbors_graph(representation_UMAP, k, mode='connectivity')
+    # Converts adjacency matrix to a directed NetworkX graph
+    umap_graph =  nx.from_scipy_sparse_matrix(adj_matrix_umap)
+
     return umap_graph
 
 
@@ -74,6 +92,6 @@ if __name__ == "__main__":
     umap_graph = get_UMAP_graph(final_representation, k_umap, n_neighbors, min_dist, dim, rnd_state)
 
     # defining the file's name and saving the representation 
-    output_file = f"{output_dir}/umap_edges_{dataset_name}_{k_umap}_{n_neighbors}_{min_dist}.pkl"
+    output_file = Path(output_dir) / dataset_name / f"umap_edges_{k_umap}_{n_neighbors}_{min_dist}.pkl"
     save_edges(umap_graph, output_file)
 

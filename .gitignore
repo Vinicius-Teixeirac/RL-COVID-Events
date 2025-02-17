@@ -14,3 +14,9 @@ __pycache__/
 # logs
 logs/
 *.log
+
+# on github, for a moment
+EvaluationResults/
+
+GeneratedGraphs/
+

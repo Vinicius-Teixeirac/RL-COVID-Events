@@ -9,7 +9,9 @@ from sklearn.neighbors import kneighbors_graph
 from utils import load_representation, save_edges
 
 
-def get_PCA_graph(representation: np.ndarray, k: int, dim: int) -> nx.DiGraph:
+def get_PCA_graph( representation: np.ndarray,
+                  k: int,
+                  dim: int) -> nx.DiGraph:
     """
     Generates a k-nearest neighbors graph using PCA-reduced representation.
 
@@ -26,18 +28,31 @@ def get_PCA_graph(representation: np.ndarray, k: int, dim: int) -> nx.DiGraph:
     -------
     nx.DiGraph
         A directed graph representing the k-nearest neighbors for each instance in the new reduced representation.
+
+    Raises
+    ------
+    ValueError
+        If `k` or `dim` are not positive integers, or if `dim` is greater than the number of features in `representation`.
     """
+    # Validates inputs
+    if k <= 0 or dim <= 0:
+        raise ValueError("Both k-value and dimension must be positive integers.")
+
+    if dim > representation.shape[1]:
+        raise ValueError(f"dim ({dim}) cannot be greater than the number of features in representation ({representation.shape[1]}).")
+
     # defines the PCA settings
     pca = PCA(n_components=dim)
     # fits it to representation
     pca.fit(representation)
     # gets the new transformed space
-    representation_PCA = pca.transform(representation)
-    # defines the k-neighbors graph adjacency matrix
-    adj_matrix_pca = kneighbors_graph(representation_PCA, k, mode='connectivity').toarray()
-    # obtains the graph (as a nx.digraph) from its adjacency
-    pca_graph = nx.DiGraph(adj_matrix_pca)
-    # returns the k-neighbors graph as a networkx object
+    representation_pca = pca.transform(representation)
+
+    # Constructs k-nearest neighbors graph (returns a sparse matrix)
+    adj_matrix_pca = kneighbors_graph(representation_pca, k, mode='connectivity')
+    # Converts adjacency matrix to a directed NetworkX graph
+    pca_graph = nx.from_scipy_sparse_matrix(adj_matrix_pca, create_using=nx.DiGraph)
+
     return pca_graph
 
 
@@ -63,6 +78,6 @@ if __name__ == "__main__":
     pca_graph = get_PCA_graph(final_representation, k_pca, dim)
 
     # defining the file's name and saving the representation
-    output_file = f"{output_dir}/pca_edges_{dataset_name}_{k_pca}.pkl"
+    output_file = Path(output_dir) / dataset_name / f"pca_edges_{k_pca}.pkl"
     save_edges(pca_graph, output_file)
 

@@ -1,46 +1,64 @@
 import os
-import pickle
 import argparse
 from pathlib import Path
+import logging
 
 import pandas as pd
+from joblib import Parallel, delayed
 
 from utils import load_edges
 
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 def graph_edges_metrics(edges_predicted: set, ground_truth: set) -> tuple[float, float]:
     """
     Calculates precision and recall for the predicted graph edges against the ground truth.
-
-    Parameters
-    ----------
-    edges_predicted : set
-        The set of edges predicted by a nearest neighbors graph method.
-    ground_truth : set
-        The set of edges from the reference consistency graph.
-
-    Returns
-    -------
-    tuple[float, float]
-        A tuple containing the precision and recall scores, in that order.
     """
-    # Identifies true positives, false positives, and false negatives
     true_positives = edges_predicted & ground_truth
     false_positives = edges_predicted - ground_truth
     false_negatives = ground_truth - edges_predicted
 
-    # Computes precision: proportion of predicted edges that are correct
-    precision = len(true_positives) / (len(true_positives) + len(false_positives)) if (len(true_positives) + len(false_positives)) > 0 else 0
-
-    # Computes recall: proportion of ground truth edges that were correctly predicted
-    recall = len(true_positives) / (len(true_positives) + len(false_negatives)) if (len(true_positives) + len(false_negatives)) > 0 else 0
+    precision = (len(true_positives) / (len(true_positives) + len(false_positives))
+                 if (len(true_positives) + len(false_positives)) > 0 else 0)
+    recall = (len(true_positives) / (len(true_positives) + len(false_negatives))
+              if (len(true_positives) + len(false_negatives)) > 0 else 0)
 
     return precision, recall
 
-
-def compare_graphs(reference_folder: str, comparison_folder: str, method: str, output_dir: str) -> None:
+def compare_single_pair(ref_folder: str, comp_folder: str, ref_file: str, comp_file: str) -> dict:
     """
-    Compares graphs from a reference folder (ground truth) with graphs from a comparison folder, calculating precision and recall.
+    Compares one reference file with one comparison file and return the results as a dictionary.
+    """
+    ref_path = os.path.join(ref_folder, ref_file)
+    comp_path = os.path.join(comp_folder, comp_file)
+
+    # Basic checks to ensure files exist
+    if not os.path.exists(ref_path):
+        logging.warning(f"Reference file {ref_path} does not exist. Skipping.")
+        return {}
+    if not os.path.exists(comp_path):
+        logging.warning(f"Comparison file {comp_path} does not exist. Skipping.")
+        return {}
+
+    # Loads edges
+    ref_edges = load_edges(ref_folder, ref_file)
+    comp_edges = load_edges(comp_folder, comp_file)
+
+    # Calculates metrics
+    precision, recall = graph_edges_metrics(comp_edges, ref_edges)
+    logging.info(f"Compared {ref_file} with {comp_file}: Precision={precision:.2f}, Recall={recall:.2f}")
+
+    return {
+        "Reference Graph": ref_file,
+        "Compared Graph": comp_file,
+        "Precision": precision,
+        "Recall": recall
+    }
+
+def compare_graphs(reference_folder: str, comparison_folder: str, method: str, output_dir: str, n_jobs: int = -1) -> None:
+    """
+    Compares graphs from a reference folder (ground truth) with graphs from a comparison folder in parallel,
+    calculating precision and recall, and saves the results as a Parquet file.
 
     Parameters
     ----------
@@ -52,74 +70,76 @@ def compare_graphs(reference_folder: str, comparison_folder: str, method: str, o
         The dimensionality reduction method associated with the comparison folder.
     output_dir : str
         Directory where the comparison results will be saved.
+    n_jobs : int, optional
+        Number of CPU cores to use for parallel processing. Default is -1 (use all available cores).
 
     Returns
     -------
     None
-        The function saves a pickle file with the comparison results, including precision and recall for each graph pair.
+        The function saves a Parquet file with the comparison results, including precision and recall for each graph pair.
+
+    Raises
+    ------
+    FileNotFoundError
+        If the reference or comparison folder does not exist.
     """
-    
-    # Lists and sorts files for structured and consistent comparisons
-    reference_files = sorted(os.listdir(reference_folder))
-    comparison_files = sorted(os.listdir(comparison_folder))
-    
-    # Ensures the output directory exists
+
+    # Validates folder existence
+    if not os.path.isdir(reference_folder):
+        raise FileNotFoundError(f"Reference folder '{reference_folder}' does not exist.")
+    if not os.path.isdir(comparison_folder):
+        raise FileNotFoundError(f"Comparison folder '{comparison_folder}' does not exist.")
+
+    # Ensures output directory exists
     Path(output_dir).mkdir(parents=True, exist_ok=True)
 
-    results = []
+    # Gathers files
+    reference_files = sorted(os.listdir(reference_folder))
+    comparison_files = sorted(os.listdir(comparison_folder))
 
-    # Iterates over each reference graph file
+    # Builds tasks for parallel execution
+    tasks = []
     for ref_file in reference_files:
-        ref_edges = load_edges(reference_folder, ref_file)
-        
-        # Compares it with each file in the comparison folder
         for comp_file in comparison_files:
-            comp_edges = load_edges(comparison_folder, comp_file)
-            
-            # Calculates precision and recall, then store the result
-            precision, recall = graph_edges_metrics(comp_edges, ref_edges)
-            results.append({
-                "Reference Graph": ref_file,
-                "Compared Graph": comp_file,
-                "Precision": precision,
-                "Recall": recall
-            })
+            tasks.append((ref_file, comp_file))
 
-            print(f"Compared {ref_file} with {comp_file}: Precision={precision:.2f}, Recall={recall:.2f}")
-    
-    # Converts the results to a pandas DataFrame
+    # Runs comparisons in parallel
+    results = Parallel(n_jobs=n_jobs, backend='multiprocessing')(
+        delayed(compare_single_pair)(reference_folder, comparison_folder, ref_file, comp_file)
+        for (ref_file, comp_file) in tasks
+    )
+
+    # Filters out empty dicts (in case of missing files)
+    results = [res for res in results if res]
+
+    # Converts results to a pandas DataFrame
     structured_results = pd.DataFrame(results)
-
-    # Saves the results as a Parquet file
-    results_file = os.path.join(output_dir, f"comparison_results_{method}.parquet")
-    structured_results.to_parquet(results_file, index=False)
-
-    print(f"Comparison results saved to {results_file}")
-
-
+    if not structured_results.empty:
+        results_file = os.path.join(output_dir, f"comparison_results_{method}.parquet")
+        structured_results.to_parquet(results_file, index=False)
+        logging.info(f"Comparison results saved to {results_file}")
+    else:
+        logging.warning("No valid comparisons were performed; no results to save.")
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Obtains the paths to evaluate graph representations.")
-
-    # Arguments for each folder
+    parser = argparse.ArgumentParser(description="Evaluate graph representations in parallel.")
+    parser.add_argument('--dataset_path', type=str, help='The path for the current dataset file')
     parser.add_argument("--reference_folder", type=str, default="./GeneratedGraphs/Consistency", help="Directory for consistency graphs.")
-    parser.add_argument("--pca_folder", type=str, default="./GeneratedGraphs/PCA", help="Directory for PCA graphs.")
-    parser.add_argument("--tsne_folder", type=str, default="./GeneratedGraphs/TSNE", help="Directory for t-SNE graphs.")
-    parser.add_argument("--umap_folder", type=str, default="./GeneratedGraphs/UMAP", help="Directory for UMAP graphs.")
+    parser.add_argument("--comparison_folder", type=str, help="Directory for a specific method's graphs (PCA, TSNE, UMAP, etc.).")
+    parser.add_argument("--method", type=str, help="Method name (PCA, TSNE, UMAP, etc.).")
     parser.add_argument("--output_dir", type=str, default="./EvaluationResults", help="Directory to save evaluation results.")
-
+    parser.add_argument("--n_jobs", type=int, default=-1, help="Number of parallel jobs to use (-1 for all cores).")
     args = parser.parse_args()
 
     # Accessing folder paths
-    reference_folder = args.reference_folder
-    pca_folder = args.pca_folder
-    tsne_folder = args.tsne_folder
-    umap_folder = args.umap_folder
-    output_dir = args.output_dir
+    dataset_path = args.dataset_path
+    dataset_name = Path(dataset_path).stem
 
-    # applying the comparsions and obtaining the results for each method against the reference (consistency graphs)
-    compare_graphs(reference_folder, pca_folder, "PCA", output_dir)
-    compare_graphs(reference_folder, tsne_folder, "TSNE", output_dir)
-    compare_graphs(reference_folder, umap_folder, "UMAP", output_dir)
-    print("Evaluation completed successfully", flush=True)
+    # Building the actual folders for reference and comparison
+    reference_folder = os.path.join(args.reference_folder, dataset_name)
+    comparison_folder = os.path.join(args.comparison_folder, dataset_name)
+    method_name = args.method
+    output_dir = os.path.join(args.output_dir, dataset_name)
 
+    compare_graphs(reference_folder, comparison_folder, method_name, output_dir, n_jobs=args.n_jobs)
+    logging.info(f"{method_name} evaluation completed successfully.")

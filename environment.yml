@@ -78,12 +78,12 @@ dependencies:
   - libsodium=1.0.20=h4ab18f5_0
   - libssh2=1.11.1=h251f7ec_0
   - libstdcxx=14.2.0=hc0a3c3a_1
-  - libstdcxx-ng=11.2.0=h1234567_1
+  - libstdcxx-ng=14.2.0=h4852527_1
   - libthrift=0.15.0=h1795dd8_2
   - libuuid=1.41.5=h5eee18b_0
   - libxml2=2.13.5=hfdd30dd_0
   - libzlib=1.2.13=h4ab18f5_6
-  - llvmlite=0.44.0=py311h6a678d5_0
+  - llvmlite=0.42.0=py311h6a678d5_0
   - lz4-c=1.9.4=h6a678d5_1
   - matplotlib-inline=0.1.7=pyhd8ed1ab_1
   - mkl=2023.1.0=h213fc3f_46344
@@ -93,7 +93,7 @@ dependencies:
   - ncurses=6.4=h6a678d5_0
   - nest-asyncio=1.6.0=pyhd8ed1ab_1
   - networkx=3.4.2=py311h06a4308_0
-  - numba=0.61.0=py311h4e1c48f_1
+  - numba=0.59.1=py311h96b013e_0
   - numexpr=2.10.1=py311h3c60e43_0
   - numpy=1.26.4=py311h08b1b3b_0
   - numpy-base=1.26.4=py311hf175353_0
@@ -140,7 +140,6 @@ dependencies:
   - traitlets=5.14.3=pyhd8ed1ab_1
   - typing_extensions=4.12.2=pyha770c72_1
   - tzdata=2025a=h04d1e81_0
-  - umap-learn=0.5.3=py311h06a4308_0
   - urllib3=2.3.0=py311h06a4308_0
   - utf8proc=2.6.1=h5eee18b_1
   - wcwidth=0.2.13=pyhd8ed1ab_1
@@ -150,4 +149,6 @@ dependencies:
   - zipp=3.21.0=pyhd8ed1ab_1
   - zlib=1.2.13=h4ab18f5_6
   - zstd=1.5.6=hc292b87_0
+  - pip:
+      - umap-learn==0.5.7
 prefix: /home/vtcfreitas/miniconda3/envs/RL-COVID-EVENTS

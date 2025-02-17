@@ -9,7 +9,11 @@ from sklearn.neighbors import kneighbors_graph
 from utils import load_representation, save_edges
 
 
-def get_tSNE_graph(representation: np.ndarray,  k: int, ppxty: int, dim: int, rnd_state: int) -> nx.DiGraph:
+def get_tSNE_graph(representation: np.ndarray,
+                   k: int, 
+                   ppxty: int,
+                   dim: int,
+                   rnd_state: int) -> nx.DiGraph:
     """
     Generates a k-nearest neighbors graph using t-SNE-reduced representation.
 
@@ -30,16 +34,34 @@ def get_tSNE_graph(representation: np.ndarray,  k: int, ppxty: int, dim: int, rn
     -------
     nx.DiGraph
         A directed graph representing the k-nearest neighbors for each instance in the new reduced representation.
+
+    Raises
+    ------
+    ValueError
+        If `k` or `dim` are not positive integers, or if `dim` is greater than the number of features in `representation`, and if
+        `perplexity` was bad choosen.
     """
+    # Validates inputs
+    if k <= 0 or dim <= 0:
+        raise ValueError("Both k-value and dimension must be positive integers.")
+
+    if dim > representation.shape[1]:
+        raise ValueError(f"dim ({dim}) cannot be greater than the number of features in representation ({representation.shape[1]}).")
+    
+    # Validate perplexity (must be < number of points)
+    if ppxty >= representation.shape[1]:
+        raise ValueError(f"Perplexity ({ppxty}) must be smaller than the number of samples ({representation.shape[1]}).")
+
     # defines the t-SNE settings 
     tsne = TSNE(n_components=dim, perplexity=ppxty, random_state=rnd_state, metric='euclidean')
     # gets the new transformed space
     representation_tSNE = tsne.fit_transform(representation) 
-    # defines the k-neighbors graph adjacency matrix
-    adj_matrix_tsne = kneighbors_graph(representation_tSNE, k, mode='connectivity').toarray()
-    # obtains the graph (as a nx.digraph) from its adjacency
-    tsne_graph =  nx.DiGraph(adj_matrix_tsne)
-    # returns the k-neighbors graph as a networkx object
+
+    # Constructs k-nearest neighbors graph (returns a sparse matrix)
+    adj_matrix_tsne = kneighbors_graph(representation_tSNE, k, mode='connectivity')
+    # Converts adjacency matrix to a directed NetworkX graph
+    tsne_graph = nx.from_scipy_sparse_matrix(adj_matrix_tsne, create_using=nx.DiGraph)
+
     return tsne_graph
 
 
@@ -66,6 +88,6 @@ if __name__ == "__main__":
     tsne_graph = get_tSNE_graph(final_representation, k_tsne, ppxty, dim, rnd_state)
 
     # defining the file's name and saving the representation
-    output_file = f"{output_dir}/tsne_edges_{dataset_name}_{k_tsne}_{ppxty}.pkl"
+    output_file = Path(output_dir) / dataset_name / f"tsne_edges_{k_tsne}_{ppxty}.pkl"
     save_edges(tsne_graph, output_file)
 
