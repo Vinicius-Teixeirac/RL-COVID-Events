@@ -151,4 +151,3 @@ dependencies:
   - zstd=1.5.6=hc292b87_0
   - pip:
       - umap-learn==0.5.7
-prefix: /home/vtcfreitas/miniconda3/envs/RL-COVID-EVENTS

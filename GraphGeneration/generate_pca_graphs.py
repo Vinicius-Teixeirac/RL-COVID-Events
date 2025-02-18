@@ -1,5 +1,6 @@
 import argparse
 from pathlib import Path
+import logging
 
 import numpy as np
 import networkx as nx
@@ -8,6 +9,7 @@ from sklearn.neighbors import kneighbors_graph
 
 from utils import load_representation, save_edges
 
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
 def get_PCA_graph( representation: np.ndarray,
                   k: int,
@@ -36,9 +38,11 @@ def get_PCA_graph( representation: np.ndarray,
     """
     # Validates inputs
     if k <= 0 or dim <= 0:
+        logging.error("Non positive value for k or dimension")
         raise ValueError("Both k-value and dimension must be positive integers.")
 
     if dim > representation.shape[1]:
+        logging.error("Inconsistent dimension")
         raise ValueError(f"dim ({dim}) cannot be greater than the number of features in representation ({representation.shape[1]}).")
 
     # defines the PCA settings

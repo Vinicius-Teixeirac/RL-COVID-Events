@@ -1,6 +1,7 @@
 import argparse
 import warnings
 from pathlib import Path
+import logging
 
 import numpy as np
 import networkx as nx
@@ -8,6 +9,7 @@ from sklearn.neighbors import kneighbors_graph
 
 from utils import load_representation, save_edges
 
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
 def get_consistency_graph(semantic_representation: np.ndarray,
                           geospatial_representation: np.ndarray,
@@ -58,13 +60,15 @@ def get_consistency_graph(semantic_representation: np.ndarray,
     # Validates shapes 
     if semantic_representation.shape[0] != geospatial_representation.shape[0] or \
        semantic_representation.shape[0] != temporal_representation.shape[0]:
+        logging.error("Inconsistent representation shapes")
         raise ValueError("All representations must have the same number of samples (rows).")
     
     # Validates k's
     if k_s <= 0 or k_g <= 0 or k_t <= 0:
+        logging.error("Inconsistent values for k")
         raise ValueError("k-values must be positive integers.")
 
-    # Validates threshold
+    # Checks threshold
     if threshold > 3:
         warnings.warn(
             f"Threshold ({threshold}) is greater than the number of available graphs (3). "

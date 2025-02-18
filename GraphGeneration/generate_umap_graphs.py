@@ -1,5 +1,6 @@
 import argparse
 from pathlib import Path
+import logging
 
 import numpy as np
 from umap import UMAP
@@ -8,6 +9,7 @@ from sklearn.neighbors import kneighbors_graph
 
 from utils import load_representation, save_edges
 
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
 def get_UMAP_graph(representation: np.ndarray,
                    k: int,
@@ -45,9 +47,11 @@ def get_UMAP_graph(representation: np.ndarray,
     """
     # Validates inputs
     if k <= 0 or n_neighbors<=1 or dim <= 0:
+        logging.error("Non positive value for k or dimension")
         raise ValueError("k-value, n_neighbors and dimension must be positive integers.")
 
     if dim > representation.shape[1]:
+        logging.error("Inconsistent dimension")
         raise ValueError(f"dim ({dim}) cannot be greater than the number of features in representation ({representation.shape[1]}).")
 
     # defines the UMAP settings

@@ -1,8 +1,10 @@
-import os
 import pickle
 from pathlib import Path
+import logging
 
 import networkx as nx
+
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
 def save_edges(graph: nx.DiGraph, output_path: str) -> None:
     """
@@ -27,14 +29,16 @@ def save_edges(graph: nx.DiGraph, output_path: str) -> None:
     """
     edges = set(graph.edges())
     if not edges:
+        logging.error("Attempted to save an empty graph.")
         raise ValueError("The graph has no edges to save.")
     
-    Path(output_path).parent.mkdir(parents=True, exist_ok=True)
-    
-    with open(output_path, 'wb') as f:
-        pickle.dump(edges, f)
-    print(f"Edges saved successfully to {output_path}", flush=True)
+    output_path = Path(output_path)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
 
+    with output_path.open("wb") as f:
+        pickle.dump(edges, f)
+
+    logging.info(f"Edges saved successfully to {output_path}")
 
 def load_edges(folder: str, file: str) -> set:
     """
@@ -59,14 +63,15 @@ def load_edges(folder: str, file: str) -> set:
     EOFError
         If the file is empty or corrupted.
     """
-    path = os.path.join(folder, file)
-    if not os.path.exists(path):
+    path = Path(folder) / file
+    if not path.exists():
+        logging.error(f"File not found: {path}")
         raise FileNotFoundError(f"The file '{path}' does not exist.")
     
-    with open(path, 'rb') as f:
-        try:
+    try:
+        with path.open("rb") as f:
             edges = pickle.load(f)
-        except EOFError:
-            raise EOFError(f"The file '{path}' is empty or corrupted.")
-    
-    return edges
+        return edges
+    except EOFError:
+        logging.error(f"Corrupted or empty file: {path}")
+        raise EOFError(f"The file '{path}' is empty or corrupted.")
