@@ -1,7 +1,7 @@
 import argparse
+import logging
 import warnings
 from pathlib import Path
-import logging
 
 import numpy as np
 import networkx as nx

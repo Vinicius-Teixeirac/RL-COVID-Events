@@ -1,6 +1,7 @@
+import logging
 import argparse
 from pathlib import Path
-import logging
+
 
 import numpy as np
 from umap import UMAP
@@ -65,7 +66,7 @@ def get_UMAP_graph(representation: np.ndarray,
     # Constructs k-nearest neighbors graph (returns a sparse matrix)
     adj_matrix_umap = kneighbors_graph(representation_UMAP, k, mode='connectivity')
     # Converts adjacency matrix to a directed NetworkX graph
-    umap_graph =  nx.from_scipy_sparse_matrix(adj_matrix_umap)
+    umap_graph =  nx.from_scipy_sparse_array(adj_matrix_umap)
 
     return umap_graph
 

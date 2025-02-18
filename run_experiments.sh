@@ -176,7 +176,7 @@ for dataset_path in "${datasets[@]}"; do
     wait
 
     # --- Evaluation step for each method in parallel ---
-    # We'll call evaluate_methods.py for PCA, t-SNE, and UMAP individually
+    # evaluate_methods.py for PCA, t-SNE, and UMAP work individually
     {
       log_file="logs/eval_pca_${dataset_stem}.log"
       if [ ! -s "$log_file" ] || ! grep -q "evaluation completed successfully" "$log_file"; then
@@ -216,7 +216,7 @@ for dataset_path in "${datasets[@]}"; do
       echo "UMAP evaluation done for $dataset_stem" >> logs/success.log
     } &
 
-    # Wait for the three evaluations to finish
+    # Waits for the three evaluations to finish
     wait
 
     echo "Process for dataset $dataset_stem completed successfully!" >> logs/success.log

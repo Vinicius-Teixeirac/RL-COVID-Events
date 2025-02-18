@@ -1,8 +1,11 @@
-from pathlib import Path
 import pickle
+import logging
 from typing import Union
+from pathlib import Path
 
 import numpy as np
+
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
 def save_representations(representations: dict[str, np.ndarray], dataset_name: str, output_dir: str) -> None:
     """
@@ -20,24 +23,21 @@ def save_representations(representations: dict[str, np.ndarray], dataset_name: s
     Returns
     -------
     None
-        The function saves the representations as a pickle file in the specified directory.
-
-    Raises
-    ------
-    ValueError
-        If the `representations` dictionary is empty.
     """
     if not representations:
+        logging.error("The representations dictionary is empty. Nothing to save.")
         raise ValueError("The representations dictionary is empty. Nothing to save.")
 
-    Path(output_dir).mkdir(parents=True, exist_ok=True)
-    output_file = f"{output_dir}/{dataset_name}_representations.pkl"
+    output_path = Path(output_dir) / f"{dataset_name}_representations.pkl"
+    output_path.parent.mkdir(parents=True, exist_ok=True)
 
-    with open(output_file, 'wb') as f:
-        pickle.dump(representations, f)
-    
-    print(f"Representations saved to {output_file}")
-
+    try:
+        with open(output_path, 'wb') as f:
+            pickle.dump(representations, f)
+        logging.info(f"Representations successfully saved to {output_path}")
+    except Exception as e:
+        logging.error(f"Failed to save representations to {output_path}: {e}")
+        raise 
 
 
 def load_representation(dataset_name: str, target: str = None, path: str = './DatasetRepresentations') -> Union[dict[str, np.ndarray], np.ndarray]:
@@ -50,7 +50,6 @@ def load_representation(dataset_name: str, target: str = None, path: str = './Da
         Name of the dataset for which the representations are saved.
     target : str, optional
         Specific representation key to load (e.g., 'semantic', 'geospatial', 'temporal', or 'final').
-        If not provided, all representations are returned as a dictionary.
     path : str, optional
         Path to the directory containing the saved representations. Default is './DatasetRepresentations'.
 
@@ -59,26 +58,23 @@ def load_representation(dataset_name: str, target: str = None, path: str = './Da
     Union[dict[str, np.ndarray], np.ndarray]
         If `target` is provided, returns the corresponding numpy array.
         Otherwise, returns a dictionary with all representations.
-
-    Raises
-    ------
-    ValueError
-        If the target representation is not found in the saved representations.
-    FileNotFoundError
-        If the representation file does not exist.
     """
-    representations_path = f"{path}/{dataset_name}_representations.pkl"
+    representations_path = Path(path) / f"{dataset_name}_representations.pkl"
 
-    if not Path(representations_path).exists():
+    if not representations_path.exists():
+        logging.error(f"Representation file not found at {representations_path}")
         raise FileNotFoundError(f"Representation file not found at {representations_path}")
 
     with open(representations_path, 'rb') as f:
         representations = pickle.load(f)
 
+    logging.info(f"Successfully loaded representations for dataset: {dataset_name}")
+
     if target:
         if target not in representations:
             available_keys = ', '.join(representations.keys())
+            logging.error(f"Requested representation '{target}' not found. Available keys: {available_keys}")
             raise ValueError(f"Target representation '{target}' not found. Available keys: {available_keys}")
         return representations[target]
-    
+
     return representations

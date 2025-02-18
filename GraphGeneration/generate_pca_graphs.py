@@ -1,6 +1,6 @@
+import logging
 import argparse
 from pathlib import Path
-import logging
 
 import numpy as np
 import networkx as nx
@@ -55,7 +55,7 @@ def get_PCA_graph( representation: np.ndarray,
     # Constructs k-nearest neighbors graph (returns a sparse matrix)
     adj_matrix_pca = kneighbors_graph(representation_pca, k, mode='connectivity')
     # Converts adjacency matrix to a directed NetworkX graph
-    pca_graph = nx.from_scipy_sparse_matrix(adj_matrix_pca, create_using=nx.DiGraph)
+    pca_graph = nx.from_scipy_sparse_array(adj_matrix_pca, create_using=nx.DiGraph)
 
     return pca_graph
 

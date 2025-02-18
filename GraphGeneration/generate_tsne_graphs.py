@@ -1,6 +1,6 @@
+import logging
 import argparse
 from pathlib import Path
-import logging
 
 import numpy as np
 import networkx as nx
@@ -65,7 +65,7 @@ def get_tSNE_graph(representation: np.ndarray,
     # Constructs k-nearest neighbors graph (returns a sparse matrix)
     adj_matrix_tsne = kneighbors_graph(representation_tSNE, k, mode='connectivity')
     # Converts adjacency matrix to a directed NetworkX graph
-    tsne_graph = nx.from_scipy_sparse_matrix(adj_matrix_tsne, create_using=nx.DiGraph)
+    tsne_graph = nx.from_scipy_sparse_array(adj_matrix_tsne, create_using=nx.DiGraph)
 
     return tsne_graph
 
