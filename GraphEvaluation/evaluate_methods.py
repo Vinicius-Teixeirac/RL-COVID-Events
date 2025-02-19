@@ -181,7 +181,8 @@ if __name__ == "__main__":
     comparison_folder = Path(args.comparison_folder) / dataset_name
     output_dir = Path(args.output_dir) / dataset_name
     method_name = args.method
+    n_jobs=args.n_jobs
 
     # Evaluating results
-    compare_graphs(reference_folder, comparison_folder, method_name, output_dir, n_jobs=args.n_jobs)
+    compare_graphs(reference_folder, comparison_folder, method_name, output_dir, n_jobs)
     logging.info(f"{method_name} evaluation completed successfully.")

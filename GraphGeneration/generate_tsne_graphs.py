@@ -4,7 +4,8 @@ from pathlib import Path
 
 import numpy as np
 import networkx as nx
-from sklearn.manifold import TSNE
+# from sklearn.manifold import TSNE
+from openTSNE import TSNE
 from sklearn.neighbors import kneighbors_graph
 
 from utils import load_representation, save_edges
@@ -14,8 +15,10 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(
 def get_tSNE_graph(representation: np.ndarray,
                    k: int, 
                    ppxty: int,
+                   initialization: str,
                    dim: int,
-                   rnd_state: int) -> nx.DiGraph:
+                   rnd_state: int,
+                   n_jobs: int = 8) -> nx.DiGraph:
     """
     Generates a k-nearest neighbors graph using t-SNE-reduced representation.
 
@@ -58,9 +61,9 @@ def get_tSNE_graph(representation: np.ndarray,
         raise ValueError(f"Perplexity ({ppxty}) must be smaller than the number of samples ({representation.shape[1]}).")
 
     # defines the t-SNE settings 
-    tsne = TSNE(n_components=dim, perplexity=ppxty, random_state=rnd_state, metric='euclidean')
+    tsne = TSNE(n_components=dim, perplexity=ppxty, random_state=rnd_state, metric='euclidean', initialization=initialization, n_jobs=n_jobs) 
     # gets the new transformed space
-    representation_tSNE = tsne.fit_transform(representation) 
+    representation_tSNE = tsne.fit(representation) 
 
     # Constructs k-nearest neighbors graph (returns a sparse matrix)
     adj_matrix_tsne = kneighbors_graph(representation_tSNE, k, mode='connectivity')
@@ -73,9 +76,9 @@ def get_tSNE_graph(representation: np.ndarray,
 if __name__ == "__main__":
     # parsing the arguments that'll be used on the t-SNE method
     parser = argparse.ArgumentParser(description ='Generate the t-SNE graphs')
-    parser.add_argument('--hyperparameters',  type=int, nargs=4, 
-                            help='''Four intergers arguments: Number of neighbors in t-SNE graph, perplexity, desired dimensionality, 
-                            and random state''')
+    parser.add_argument('--hyperparameters',  type=int, nargs=4, help='''Four intergers arguments: 
+                        Number of neighbors in t-SNE graph, perplexity, desired dimensionality, and random state''')
+    parser.add_argument('--initialization', type=str, help='The initial point positions to be used in the embedding space.')
     parser.add_argument('--dataset_path', type=str, help='The path for the current dataset file')
     parser.add_argument("--output_dir", type=str, default="./GeneratedGraphs/TSNE", help="Directory to save the output.")
     args = parser.parse_args()
@@ -87,12 +90,13 @@ if __name__ == "__main__":
 
     # acquiring from arguments the method's hyperparameters
     k_tsne, ppxty, dim, rnd_state = args.hyperparameters
+    init = args.initialization
 
     # loading the representation and obtaining the t-SNE graph from it
     final_representation = load_representation(dataset_name, 'final')
-    tsne_graph = get_tSNE_graph(final_representation, k_tsne, ppxty, dim, rnd_state)
+    tsne_graph = get_tSNE_graph(final_representation, k_tsne, ppxty, init, dim, rnd_state)
 
     # defining the file's name and saving the representation
-    output_file = Path(output_dir) / dataset_name / f"tsne_edges_{k_tsne}_{ppxty}.pkl"
+    output_file = Path(output_dir) / dataset_name / f"tsne_edges_{k_tsne}_{ppxty}_{init}.pkl"
     save_edges(tsne_graph, output_file)
 

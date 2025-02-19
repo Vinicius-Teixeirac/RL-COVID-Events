@@ -138,20 +138,24 @@ for dataset_path in "${datasets[@]}"; do
 
     # --- t-SNE Graphs ---
     ppxty_values=(5 10 20 30 40 50)
+    initialization=("pca" "spectral")
     rnd_state=42
     for ktsne in "${ktsne_values[@]}"; do
       for ppxty in "${ppxty_values[@]}"; do
-        log_file="logs/tsne_${dataset_stem}_${ktsne}_${ppxty}.log"
-        if [ ! -s "$log_file" ] || ! grep -q "Edges saved successfully" "$log_file"; then
-          python GraphGeneration/generate_tsne_graphs.py \
-            --hyperparameters "$ktsne" "$ppxty" "$desired_dimensionality" "$rnd_state" \
-            --dataset_path "$dataset_path" > "$log_file" 2>&1 &
-          job_count=$((job_count + 1))
-          if (( job_count >= MAX_PARALLEL_JOBS )); then
-            wait
-            job_count=0
+        for init in "${initialization[@]}"; do
+          log_file="logs/tsne_${dataset_stem}_${ktsne}_${ppxty}_${init}.log"
+          if [ ! -s "$log_file" ] || ! grep -q "Edges saved successfully" "$log_file"; then
+            python GraphGeneration/generate_tsne_graphs.py \
+              --hyperparameters "$ktsne" "$ppxty" "$desired_dimensionality" "$rnd_state" \
+              --initialization "$init" \
+              --dataset_path "$dataset_path" > "$log_file" 2>&1 &
+            job_count=$((job_count + 1))
+            if (( job_count >= MAX_PARALLEL_JOBS )); then
+              wait
+              job_count=0
+            fi
           fi
-        fi
+        done
       done
     done
 
