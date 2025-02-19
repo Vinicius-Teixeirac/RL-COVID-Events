@@ -185,7 +185,8 @@ for dataset_path in "${datasets[@]}"; do
           --reference_folder "./GeneratedGraphs/Consistency" \
           --comparison_folder "./GeneratedGraphs/PCA" \
           --method "PCA" \
-          --output_dir "./EvaluationResults" > "$log_file" 2>&1
+          --output_dir "./EvaluationResults" \
+          --n_jobs 1 > "$log_file" 2>&1
       fi
       echo "PCA evaluation done for $dataset_stem" >> logs/success.log
     } &
@@ -198,7 +199,8 @@ for dataset_path in "${datasets[@]}"; do
           --reference_folder "./GeneratedGraphs/Consistency" \
           --comparison_folder "./GeneratedGraphs/TSNE" \
           --method "TSNE" \
-          --output_dir "./EvaluationResults" > "$log_file" 2>&1
+          --output_dir "./EvaluationResults" \
+          --n_jobs 30 > "$log_file" 2>&1
       fi
       echo "TSNE evaluation done for $dataset_stem" >> logs/success.log
     } &
@@ -211,7 +213,8 @@ for dataset_path in "${datasets[@]}"; do
           --reference_folder "./GeneratedGraphs/Consistency" \
           --comparison_folder "./GeneratedGraphs/UMAP" \
           --method "UMAP" \
-          --output_dir "./EvaluationResults" > "$log_file" 2>&1
+          --output_dir "./EvaluationResults" \
+          --n_jobs 90 > "$log_file" 2>&1
       fi
       echo "UMAP evaluation done for $dataset_stem" >> logs/success.log
     } &
