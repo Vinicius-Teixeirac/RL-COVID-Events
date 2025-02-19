@@ -118,18 +118,22 @@ for dataset_path in "${datasets[@]}"; do
 
     # --- PCA Graphs ---
     desired_dimensionality=2
+    whiten=(0 1)
     for kpca in "${kpca_values[@]}"; do
-      log_file="logs/pca_${dataset_stem}_${kpca}.log"
-      if [ ! -s "$log_file" ] || ! grep -q "Edges saved successfully" "$log_file"; then
-        python GraphGeneration/generate_pca_graphs.py \
-          --hyperparameters "$kpca" "$desired_dimensionality" \
-          --dataset_path "$dataset_path" > "$log_file" 2>&1 &
-        job_count=$((job_count + 1))
-        if (( job_count >= MAX_PARALLEL_JOBS )); then
-          wait
-          job_count=0
+      for value in "${whiten[@]}"; do
+        log_file="logs/pca_${dataset_stem}_${kpca}_${value}.log"
+        if [ ! -s "$log_file" ] || ! grep -q "Edges saved successfully" "$log_file"; then
+          python GraphGeneration/generate_pca_graphs.py \
+            --hyperparameters "$kpca" "$desired_dimensionality" \
+            --whiten "$value" \
+            --dataset_path "$dataset_path" > "$log_file" 2>&1 &
+          job_count=$((job_count + 1))
+          if (( job_count >= MAX_PARALLEL_JOBS )); then
+            wait
+            job_count=0
+          fi
         fi
-      fi
+      done
     done
 
     # --- t-SNE Graphs ---
