@@ -30,10 +30,14 @@ def get_tSNE_graph(representation: np.ndarray,
         Number of nearest neighbors for the graph.
     ppxty: int
         Perplexity. The perplexity is related to the number of nearest neighbors that is used in other manifold learning algorithms.
+    initialization: str
+        The initial point positions to be used in the embedding space.
     dim : int
         Desired number of dimensions for t-SNE reduction.
     rnd_state: int
-        Seed for reproducibility (since t-SNE is stochastic)
+        Seed for reproducibility (since t-SNE is stochastic).
+    n_jobs:
+        Number of cpu cores to be used in an execution.
     
     Returns
     -------

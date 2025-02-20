@@ -6,6 +6,7 @@ certifi @ file:///croot/certifi_1738623731865/work/certifi
 charset-normalizer @ file:///croot/charset-normalizer_1721748349566/work
 comm @ file:///home/conda/feedstock_root/build_artifacts/comm_1733502965406/work
 cramjam @ file:///croot/cramjam_1702650823688/work
+critdd @ git+https://github.com/mirkobunse/critdd@0d5422d6e10a69f2a2da2252d59de9e959caa19e
 debugpy @ file:///home/conda/feedstock_root/build_artifacts/debugpy_1737269753336/work
 decorator @ file:///home/conda/feedstock_root/build_artifacts/decorator_1733236420667/work
 exceptiongroup @ file:///home/conda/feedstock_root/build_artifacts/exceptiongroup_1733208806608/work
@@ -32,6 +33,7 @@ networkx @ file:///croot/networkx_1737039604450/work
 numba @ file:///home/conda/feedstock_root/build_artifacts/numba_1711475169058/work
 numexpr @ file:///croot/numexpr_1730215937391/work
 numpy @ file:///croot/numpy_and_numpy_base_1708638617955/work/dist/numpy-1.26.4-cp311-cp311-linux_x86_64.whl#sha256=5f96f274d410a1682519282ae769c877d32fdbf171aa8badec7bf5e1d3a1748a
+openTSNE==1.0.2
 packaging @ file:///home/conda/feedstock_root/build_artifacts/packaging_1733203243479/work
 pandas @ file:///croot/pandas_1732735089971/work/dist/pandas-2.2.3-cp311-cp311-linux_x86_64.whl#sha256=884420a58b11b4c9b7f4df21046caaae9229522b672b557f0f98c84251141fc5
 parso @ file:///home/conda/feedstock_root/build_artifacts/parso_1733271261340/work

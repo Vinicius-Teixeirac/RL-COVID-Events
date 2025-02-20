@@ -23,7 +23,7 @@ job_count=0
 generate_hyperparams() {
   local num_rows=$1
   local num_parts=10
-  local min_value=3
+  local min_value=1
   local max_value
   max_value=$(echo "scale=0; sqrt($num_rows)" | bc)
 
@@ -164,18 +164,21 @@ for dataset_path in "${datasets[@]}"; do
     for kumap in "${kumap_values[@]}"; do
       for umap_neighbors in "${umap_neighbors_values[@]}"; do
         for min_dist in "${min_dist_values[@]}"; do
-          log_file="logs/umap_${dataset_stem}_${kumap}_${umap_neighbors}_${min_dist}.log"
-          if [ ! -s "$log_file" ] || ! grep -q "Edges saved successfully" "$log_file"; then
-            python GraphGeneration/generate_umap_graphs.py \
-              --int_hyperparameters "$kumap" "$umap_neighbors" "$desired_dimensionality" "$rnd_state" \
-              --float_hyperparameters "$min_dist" \
-              --dataset_path "$dataset_path" > "$log_file" 2>&1 &
-            job_count=$((job_count + 1))
-            if (( job_count >= MAX_PARALLEL_JOBS )); then
-              wait
-              job_count=0
+          for init in "${initialization[@]}"; do
+            log_file="logs/umap_${dataset_stem}_${kumap}_${umap_neighbors}_${min_dist}_${init}.log"
+            if [ ! -s "$log_file" ] || ! grep -q "Edges saved successfully" "$log_file"; then
+              python GraphGeneration/generate_umap_graphs.py \
+                --int_hyperparameters "$kumap" "$umap_neighbors" "$desired_dimensionality" "$rnd_state" \
+                --float_hyperparameters "$min_dist" \
+                --initialization "$init" \
+                --dataset_path "$dataset_path" > "$log_file" 2>&1 &
+              job_count=$((job_count + 1))
+              if (( job_count >= MAX_PARALLEL_JOBS )); then
+                wait
+                job_count=0
+              fi
             fi
-          fi
+          done
         done
       done
     done

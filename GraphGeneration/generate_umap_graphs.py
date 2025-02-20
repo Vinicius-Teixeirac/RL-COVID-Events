@@ -16,6 +16,7 @@ def get_UMAP_graph(representation: np.ndarray,
                    k: int,
                    n_neighbors: int,
                    min_dist: float,
+                   initialization: str,
                    dim: int,
                    random_state: int) -> nx.DiGraph:
     """
@@ -31,6 +32,8 @@ def get_UMAP_graph(representation: np.ndarray,
         This parameter controls how UMAP balances local versus global structure in the data.
     min_dist: float
         The min_dist parameter controls how tightly UMAP is allowed to pack points together.
+    initialization: str
+        How to initialize the low dimensional embedding.
     dim : int
         Desired number of dimensions for UMAP reduction.
     rnd_state: int
@@ -57,7 +60,7 @@ def get_UMAP_graph(representation: np.ndarray,
 
     # defines the UMAP settings
     umap = UMAP(n_neighbors=n_neighbors, n_components=dim, min_dist=min_dist, metric='euclidean',
-                   random_state=random_state, init='pca')
+                   random_state=random_state, init=initialization)
     # fits it to the representation 
     umap.fit(representation)
     # gets the new transformed space
@@ -77,8 +80,8 @@ if __name__ == "__main__":
     parser.add_argument('--int_hyperparameters', type=int, nargs=4,
                         help='''Four intergers arguments: Number of neighbors in UMAP graph, UMAP n_neighbors hyperparameter, 
                         desired dimensionality, and random state''')
-    parser.add_argument('--float_hyperparameters', type=float,
-                        help='One float hyperparameter: UMAP min_dist hyperparameter')
+    parser.add_argument('--float_hyperparameters', type=float, help='One float hyperparameter: UMAP min_dist hyperparameter')
+    parser.add_argument('--initialization', type=str, help='The initial point positions to be used in the embedding space.')
     parser.add_argument('--dataset_path', type=str, help='The path for the current dataset file')
     parser.add_argument("--output_dir", type=str, default="./GeneratedGraphs/UMAP", help="Directory to save the output.")
     args = parser.parse_args()
@@ -91,12 +94,16 @@ if __name__ == "__main__":
     # acquiring from arguments the method's hyperparameters
     k_umap, n_neighbors, dim, rnd_state = args.int_hyperparameters
     min_dist = args.float_hyperparameters
+    init = args.initialization
+
+    # since this UMAP parameters accounts the point itself as nearest neighbor
+    n_neighbors += 1
 
     # loading the representation and obtaining the UMAP graph from it
     final_representation = load_representation(dataset_name, 'final')
-    umap_graph = get_UMAP_graph(final_representation, k_umap, n_neighbors, min_dist, dim, rnd_state)
+    umap_graph = get_UMAP_graph(final_representation, k_umap, n_neighbors, min_dist, init, dim, rnd_state)
 
     # defining the file's name and saving the representation 
-    output_file = Path(output_dir) / dataset_name / f"umap_edges_{k_umap}_{n_neighbors}_{min_dist}.pkl"
+    output_file = Path(output_dir) / dataset_name / f"umap_edges_{k_umap}_{n_neighbors}_{min_dist}_{init}.pkl"
     save_edges(umap_graph, output_file)
 
