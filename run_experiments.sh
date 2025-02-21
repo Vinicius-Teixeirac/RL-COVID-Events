@@ -123,7 +123,7 @@ for dataset_path in "${datasets[@]}"; do
       for value in "${whiten[@]}"; do
         log_file="logs/pca_${dataset_stem}_${kpca}_${value}.log"
         if [ ! -s "$log_file" ] || ! grep -q "Edges saved successfully" "$log_file"; then
-          python GraphGeneration/generate_pca_graphs.py \
+          python GraphGeneration/pca_main.py \
             --hyperparameters "$kpca" "$desired_dimensionality" \
             --whiten "$value" \
             --dataset_path "$dataset_path" > "$log_file" 2>&1 &
@@ -145,8 +145,30 @@ for dataset_path in "${datasets[@]}"; do
         for init in "${initialization[@]}"; do
           log_file="logs/tsne_${dataset_stem}_${ktsne}_${ppxty}_${init}.log"
           if [ ! -s "$log_file" ] || ! grep -q "Edges saved successfully" "$log_file"; then
-            python GraphGeneration/generate_tsne_graphs.py \
+            python GraphGeneration/tsne_main.py \
               --hyperparameters "$ktsne" "$ppxty" "$desired_dimensionality" "$rnd_state" \
+              --apply_pca 0 \
+              --initialization "$init" \
+              --dataset_path "$dataset_path" > "$log_file" 2>&1 &
+            job_count=$((job_count + 1))
+            if (( job_count >= MAX_PARALLEL_JOBS )); then
+              wait
+              job_count=0
+            fi
+          fi
+        done
+      done
+    done
+
+    # --- PCA + t-SNE Graphs ---
+    for ktsne in "${ktsne_values[@]}"; do
+      for ppxty in "${ppxty_values[@]}"; do
+        for init in "${initialization[@]}"; do
+          log_file="logs/tsne+pca_${dataset_stem}_${ktsne}_${ppxty}_${init}.log"
+          if [ ! -s "$log_file" ] || ! grep -q "Edges saved successfully" "$log_file"; then
+            python GraphGeneration/tsne_main.py \
+              --hyperparameters "$ktsne" "$ppxty" "$desired_dimensionality" "$rnd_state" \
+              --apply_pca 1 \
               --initialization "$init" \
               --dataset_path "$dataset_path" > "$log_file" 2>&1 &
             job_count=$((job_count + 1))
@@ -160,14 +182,14 @@ for dataset_path in "${datasets[@]}"; do
     done
 
     # --- UMAP Graphs ---
-    min_dist_values=(0.0 0.1 0.25 0.5 0.8 0.99)
+    min_dist_values=(0.0 0.25 0.5 0.75 0.99)
     for kumap in "${kumap_values[@]}"; do
       for umap_neighbors in "${umap_neighbors_values[@]}"; do
         for min_dist in "${min_dist_values[@]}"; do
           for init in "${initialization[@]}"; do
             log_file="logs/umap_${dataset_stem}_${kumap}_${umap_neighbors}_${min_dist}_${init}.log"
             if [ ! -s "$log_file" ] || ! grep -q "Edges saved successfully" "$log_file"; then
-              python GraphGeneration/generate_umap_graphs.py \
+              python GraphGeneration/umap_main.py \
                 --int_hyperparameters "$kumap" "$umap_neighbors" "$desired_dimensionality" "$rnd_state" \
                 --float_hyperparameters "$min_dist" \
                 --initialization "$init" \
@@ -211,7 +233,7 @@ for dataset_path in "${datasets[@]}"; do
           --comparison_folder "./GeneratedGraphs/TSNE" \
           --method "TSNE" \
           --output_dir "./EvaluationResults" \
-          --n_jobs 30 > "$log_file" 2>&1
+          --n_jobs 20 > "$log_file" 2>&1
       fi
       echo "TSNE evaluation done for $dataset_stem" >> logs/success.log
     } &
@@ -225,7 +247,7 @@ for dataset_path in "${datasets[@]}"; do
           --comparison_folder "./GeneratedGraphs/UMAP" \
           --method "UMAP" \
           --output_dir "./EvaluationResults" \
-          --n_jobs 90 > "$log_file" 2>&1
+          --n_jobs 80 > "$log_file" 2>&1
       fi
       echo "UMAP evaluation done for $dataset_stem" >> logs/success.log
     } &

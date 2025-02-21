@@ -1,6 +1,4 @@
 import logging
-import argparse
-from pathlib import Path
 
 import numpy as np
 import networkx as nx
@@ -8,11 +6,9 @@ import networkx as nx
 from openTSNE import TSNE
 from sklearn.neighbors import kneighbors_graph
 
-from utils import load_representation, save_edges
-
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
-def get_tSNE_graph(representation: np.ndarray,
+def get_tsne_graph(representation: np.ndarray,
                    k: int, 
                    ppxty: int,
                    initialization: str,
@@ -75,32 +71,3 @@ def get_tSNE_graph(representation: np.ndarray,
     tsne_graph = nx.from_scipy_sparse_array(adj_matrix_tsne, create_using=nx.DiGraph)
 
     return tsne_graph
-
-
-if __name__ == "__main__":
-    # parsing the arguments that'll be used on the t-SNE method
-    parser = argparse.ArgumentParser(description ='Generate the t-SNE graphs')
-    parser.add_argument('--hyperparameters',  type=int, nargs=4, help='''Four intergers arguments: 
-                        Number of neighbors in t-SNE graph, perplexity, desired dimensionality, and random state''')
-    parser.add_argument('--initialization', type=str, help='The initial point positions to be used in the embedding space.')
-    parser.add_argument('--dataset_path', type=str, help='The path for the current dataset file')
-    parser.add_argument("--output_dir", type=str, default="./GeneratedGraphs/TSNE", help="Directory to save the output.")
-    args = parser.parse_args()
-
-    # getting the dataset specifications
-    dataset_path = args.dataset_path
-    dataset_name = Path(dataset_path).stem
-    output_dir = args.output_dir
-
-    # acquiring from arguments the method's hyperparameters
-    k_tsne, ppxty, dim, rnd_state = args.hyperparameters
-    init = args.initialization
-
-    # loading the representation and obtaining the t-SNE graph from it
-    final_representation = load_representation(dataset_name, 'final')
-    tsne_graph = get_tSNE_graph(final_representation, k_tsne, ppxty, init, dim, rnd_state)
-
-    # defining the file's name and saving the representation
-    output_file = Path(output_dir) / dataset_name / f"tsne_edges_{k_tsne}_{ppxty}_{init}.pkl"
-    save_edges(tsne_graph, output_file)
-

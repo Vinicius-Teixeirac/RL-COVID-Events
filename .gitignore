@@ -18,4 +18,5 @@ logs/
 # on github, for a moment
 EvaluationResults/
 GeneratedGraphs/
+RL-COVID-Events.code-workspace
 

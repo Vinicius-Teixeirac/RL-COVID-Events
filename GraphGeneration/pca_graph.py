@@ -1,17 +1,13 @@
 import logging
-import argparse
-from pathlib import Path
 
 import numpy as np
 import networkx as nx
 from sklearn.decomposition import PCA
 from sklearn.neighbors import kneighbors_graph
 
-from utils import load_representation, save_edges
-
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
-def get_PCA_graph(representation: np.ndarray,
+def get_pca_graph(representation: np.ndarray,
                   k: int,
                   whiten: bool,
                   dim: int) -> nx.DiGraph:
@@ -60,31 +56,34 @@ def get_PCA_graph(representation: np.ndarray,
 
     return pca_graph
 
+def get_pca_reduction(representation: np.ndarray, dimension: int = 50) -> np.ndarray:
+    """
+    Reduces the dimension of the initial representation, which may suppress irrelevant variance (noise) and lower
+    t-SNE computation time.
 
-if __name__ == "__main__":    
-    # parsing the arguments that'll be used on the PCA method
-    parser = argparse.ArgumentParser(description ='Generate the PCA graphs')
-    parser.add_argument('--hyperparameters',  type=int, nargs=2, help='Number of neighbors in PCA graph, desired dimensionality')
-    parser.add_argument('--whiten', type=int, help='PCA whiten hyperparameter (0 or 1)')
-    parser.add_argument('--dataset_path', type=str, help='The path for the current dataset file')
-    parser.add_argument("--output_dir", type=str, default="./GeneratedGraphs/PCA", help="Directory to save the output.")
-    args = parser.parse_args()
+     Parameters
+    ----------
+    representation : np.ndarray
+        The input data representation (high-dimensional).
+    dim : int
+        The lower dimension to be given to t-SNE.
 
-    # getting the dataset specifications
-    dataset_path = args.dataset_path
-    dataset_name = Path(dataset_path).stem
-    output_dir = args.output_dir
+    Returns
+    -------
+    np.ndarray
+        The initial representation after PCA be applied.
 
-    # acquiring from arguments the method's hyperparameters
-    k_pca, dim = args.hyperparameters
-    whiten = bool(args.whiten)  
-    
-    # loading the representation and obtaining the PCA graph from it
-    final_representation = load_representation(dataset_name, 'final')
-    pca_graph = get_PCA_graph(final_representation, k_pca, whiten, dim)
+    Raises
+    ------
+    ValueError
+        If `dim` is not positive integers, or if `dim` is greater than the number of features in `representation`.
+    """
+    if dimension <= 0:
+        logging.error("Non positive value for dimension")
+        raise ValueError("Dimension must be positive integers.")
 
-    # defining the file's name and saving the representation
-    whiten_suffix = "_whitened" if whiten else ""
-    output_file = Path(output_dir) / dataset_name / f"pca_edges_{k_pca}{whiten_suffix}.pkl"
-    save_edges(pca_graph, output_file)
+    if dimension > representation.shape[1]:
+        logging.error("Inconsistent dimension")
+        raise ValueError(f"dimension ({dimension}) cannot be greater than the number of features in representation ({representation.shape[1]}).")
 
+    return PCA(n_components=dimension).fit_transform(representation)
