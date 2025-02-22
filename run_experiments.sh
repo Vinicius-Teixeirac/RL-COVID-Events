@@ -233,7 +233,21 @@ for dataset_path in "${datasets[@]}"; do
           --comparison_folder "./GeneratedGraphs/TSNE" \
           --method "TSNE" \
           --output_dir "./EvaluationResults" \
-          --n_jobs 20 > "$log_file" 2>&1
+          --n_jobs 15 > "$log_file" 2>&1
+      fi
+      echo "TSNE evaluation done for $dataset_stem" >> logs/success.log
+    } &
+
+    {
+      log_file="logs/eval_tsne+pca_${dataset_stem}.log"
+      if [ ! -s "$log_file" ] || ! grep -q "evaluation completed successfully" "$log_file"; then
+        python GraphEvaluation/evaluate_methods.py \
+          --dataset_path "$dataset_path" \
+          --reference_folder "./GeneratedGraphs/Consistency" \
+          --comparison_folder "./GeneratedGraphs/TSNE/PCA" \
+          --method "TSNE+PCA" \
+          --output_dir "./EvaluationResults" \
+          --n_jobs 15 > "$log_file" 2>&1
       fi
       echo "TSNE evaluation done for $dataset_stem" >> logs/success.log
     } &
