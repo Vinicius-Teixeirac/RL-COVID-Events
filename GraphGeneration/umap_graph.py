@@ -64,6 +64,6 @@ def get_umap_graph(representation: np.ndarray,
     # Constructs k-nearest neighbors graph (returns a sparse matrix)
     adj_matrix_umap = kneighbors_graph(representation_UMAP, k, mode='connectivity')
     # Converts adjacency matrix to a directed NetworkX graph
-    umap_graph =  nx.from_scipy_sparse_array(adj_matrix_umap)
+    umap_graph =  nx.from_scipy_sparse_array(adj_matrix_umap, create_using=nx.DiGraph)
 
     return umap_graph
