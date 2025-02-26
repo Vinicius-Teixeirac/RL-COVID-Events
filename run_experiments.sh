@@ -105,7 +105,7 @@ for dataset_path in "${datasets[@]}"; do
         for kt in "${kt_values[@]}"; do
           log_file="${log_consistency}/consistency_${dataset_stem}_${ks}_${kg}_${kt}.log"
           if [ ! -s "$log_file" ] || ! grep -q "Edges saved successfully" "$log_file"; then
-            python GraphEvaluation/generate_consistency_graphs.py \
+            python GraphEvaluation/consistency_main.py \
               --hyperparameters "$ks" "$kg" "$kt" \
               --dataset_path "$dataset_path" > "$log_file" 2>&1 &
             job_count=$((job_count + 1))
@@ -170,7 +170,7 @@ for dataset_path in "${datasets[@]}"; do
     for ktsne in "${ktsne_values[@]}"; do
       for ppxty in "${ppxty_values[@]}"; do
         for init in "${initialization[@]}"; do
-          log_file="${log_tsne}/tsne+pca_${dataset_stem}_${ktsne}_${ppxty}_${init}.log"
+          log_file="${log_tsne}/tsne_pca_${dataset_stem}_${ktsne}_${ppxty}_${init}.log"
           if [ ! -s "$log_file" ] || ! grep -q "Edges saved successfully" "$log_file"; then
             python GraphGeneration/tsne_main.py \
               --hyperparameters "$ktsne" "$ppxty" "$desired_dimensionality" "$rnd_state" \
@@ -217,11 +217,14 @@ for dataset_path in "${datasets[@]}"; do
     wait
 
     # --- Evaluation step for each method in parallel ---
-    # evaluate_methods.py for PCA, t-SNE, and UMAP work individually
+    # evaluation_main.py for PCA, t-SNE, and UMAP work individually
+    
+    log_eval="logs/${dataset_stem}/Evaluation"
+    mkdir -p "$log_eval"
     {
-      log_file="logs/eval_pca_${dataset_stem}.log"
+      log_file="${log_eval}/eval_pca_${dataset_stem}.log"
       if [ ! -s "$log_file" ] || ! grep -q "evaluation completed successfully" "$log_file"; then
-        python GraphEvaluation/evaluate_methods.py \
+        python GraphEvaluation/evaluation_main.py \
           --dataset_path "$dataset_path" \
           --reference_folder "./GeneratedGraphs/Consistency" \
           --comparison_folder "./GeneratedGraphs/PCA" \
@@ -229,55 +232,66 @@ for dataset_path in "${datasets[@]}"; do
           --output_dir "./EvaluationResults" \
           --n_jobs 1 > "$log_file" 2>&1
       fi
-      echo "PCA evaluation done for $dataset_stem" >> logs/success.log
+      echo "PCA evaluation done for $dataset_stem" >> logs/${dataset_stem}/success.log
     } &
 
     {
-      log_file="logs/eval_tsne_${dataset_stem}.log"
+      log_file="${log_eval}/eval_tsne_${dataset_stem}.log"
       if [ ! -s "$log_file" ] || ! grep -q "evaluation completed successfully" "$log_file"; then
-        python GraphEvaluation/evaluate_methods.py \
+        python GraphEvaluation/evaluation_main.py \
           --dataset_path "$dataset_path" \
           --reference_folder "./GeneratedGraphs/Consistency" \
           --comparison_folder "./GeneratedGraphs/TSNE" \
           --method "TSNE" \
           --output_dir "./EvaluationResults" \
-          --n_jobs 15 > "$log_file" 2>&1
+          --n_jobs 5 > "$log_file" 2>&1
       fi
-      echo "TSNE evaluation done for $dataset_stem" >> logs/success.log
+      echo "TSNE evaluation done for $dataset_stem" >> logs/${dataset_stem}/success.log
     } &
 
     {
-      log_file="logs/eval_tsne+pca_${dataset_stem}.log"
+      log_file="${log_eval}/eval_tsne_pca_${dataset_stem}.log"
       if [ ! -s "$log_file" ] || ! grep -q "evaluation completed successfully" "$log_file"; then
-        python GraphEvaluation/evaluate_methods.py \
+        python GraphEvaluation/evaluation_main.py \
           --dataset_path "$dataset_path" \
           --reference_folder "./GeneratedGraphs/Consistency" \
-          --comparison_folder "./GeneratedGraphs/TSNE/PCA" \
+          --comparison_folder "./GeneratedGraphs/TSNE_PCA" \
           --method "TSNE+PCA" \
           --output_dir "./EvaluationResults" \
-          --n_jobs 15 > "$log_file" 2>&1
+          --n_jobs 3 > "$log_file" 2>&1
       fi
-      echo "TSNE evaluation done for $dataset_stem" >> logs/success.log
+      echo "TSNE evaluation done for $dataset_stem" >> logs/${dataset_stem}/success.log
     } &
 
     {
-      log_file="logs/eval_umap_${dataset_stem}.log"
+      log_file="${log_eval}/eval_umap_${dataset_stem}.log"
       if [ ! -s "$log_file" ] || ! grep -q "evaluation completed successfully" "$log_file"; then
-        python GraphEvaluation/evaluate_methods.py \
+        python GraphEvaluation/evaluation_main.py \
           --dataset_path "$dataset_path" \
           --reference_folder "./GeneratedGraphs/Consistency" \
           --comparison_folder "./GeneratedGraphs/UMAP" \
           --method "UMAP" \
           --output_dir "./EvaluationResults" \
-          --n_jobs 80 > "$log_file" 2>&1
+          --n_jobs 42 > "$log_file" 2>&1
       fi
-      echo "UMAP evaluation done for $dataset_stem" >> logs/success.log
+      echo "UMAP evaluation done for $dataset_stem" >> logs/${dataset_stem}/success.log
     } &
 
     # Waits for the three evaluations to finish
     wait
 
-    echo "Process for dataset $dataset_stem completed successfully!" >> logs/success.log
+    {
+      mkdir -p CritddResults
+      log_file="logs/${dataset_stem}/critdd_${dataset_stem}.log"
+      if [ ! -s "$log_file" ] || ! grep -q "critical difference diagrams generated successfully" "$log_file"; then
+        papermill GraphEvaluation/critdd_template.ipynb \
+                  CritddResults/critdd_${dataset_stem}.ipynb \
+                  -p dataset "$dataset_stem" > "$log_file" 2>&1
+      fi
+
+      echo "Process for dataset $dataset_stem completed successfully!" >> logs/${dataset_stem}/success.log
+    } &
+
   } &
 
   # Throttles the outer loop as well.
@@ -291,4 +305,4 @@ done
 # Ensures all datasets complete before finishing script
 wait
 
-echo "All processes completed successfully!" >> logs/success.log
+echo "All processes completed successfully!" >> logs/${dataset_stem}/success.log

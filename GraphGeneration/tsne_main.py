@@ -36,7 +36,7 @@ if __name__ == "__main__":
     if apply_pca:
         representation = get_pca_reduction(representation)
         output_subdir = Path(str(output_dir) + "_PCA")
-        output_file = output_subdir / dataset_name / f"tsne+pca_edges_{k_tsne}_{ppxty}_{init}.pkl"
+        output_file = output_subdir / dataset_name / f"tsne_pca_edges_{k_tsne}_{ppxty}_{init}.pkl"
     else:
         output_subdir = output_dir
         output_file = output_subdir / dataset_name / f"tsne_edges_{k_tsne}_{ppxty}_{init}.pkl"

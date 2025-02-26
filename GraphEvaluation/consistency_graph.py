@@ -1,13 +1,9 @@
-import argparse
 import logging
 import warnings
-from pathlib import Path
 
 import numpy as np
 import networkx as nx
 from sklearn.neighbors import kneighbors_graph
-
-from utils import load_representation, save_edges
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
@@ -87,30 +83,3 @@ def get_consistency_graph(semantic_representation: np.ndarray,
 
     return nx.DiGraph(adj_matrix_consistency)
 
-
-
-if __name__ == "__main__": 
-    # the arguments that'll be used to create consistency matrices
-    parser = argparse.ArgumentParser(description ='Generate the reference graphs')
-    parser.add_argument('--hyperparameters',  type=int, nargs=3, 
-						help='Number of neighbors for semantic, geographical and temporal neighbors graph: k_s, k_g, k_t')
-    parser.add_argument('--dataset_path', type=str, help='The path for the current dataset file')
-    parser.add_argument("--output_dir", type=str, default="./GeneratedGraphs/Consistency", help="Directory to save the output.")
-    args = parser.parse_args()
-
-    # getting the dataset specifications
-    dataset_path = args.dataset_path
-    dataset_name = Path(dataset_path).stem
-    output_dir = args.output_dir
-
-    # acquiring from arguments hyperparameters
-    k_s, k_g, k_t = args.hyperparameters
-    
-    # loading the representations to obtaining the consistency graph from them
-    representations = load_representation(dataset_name)
-    semantic, geospatial, temporal = representations['semantic'], representations['geospatial'], representations['temporal']
-    consistency_graph = get_consistency_graph(semantic, geospatial, temporal, k_s, k_g, k_t) 
-
-    # defining the file's name and saving the representation   
-    output_file = Path(output_dir) / dataset_name / f"consistency_edges_{k_s}_{k_g}_{k_t}.pkl"
-    save_edges(consistency_graph, output_file)
