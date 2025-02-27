@@ -1,3 +1,4 @@
+import logging
 import argparse
 from pathlib import Path
 
@@ -6,6 +7,8 @@ import pandas as pd
 from sklearn.preprocessing import normalize, StandardScaler
 
 from utils import save_representations
+
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
 def get_representations(dataset_path: str)-> dict[str, np.ndarray]:
     """
@@ -22,6 +25,11 @@ def get_representations(dataset_path: str)-> dict[str, np.ndarray]:
         A dict with the semantic, geospatial and temporal representations, also with the final representation for the posterior 
         reduction method
     """
+
+    if not Path(dataset_path).is_file():
+        logging.error(f"File {dataset_path} not found.")
+        raise FileNotFoundError(f"File {dataset_path} does not exist.")
+
     dataset = pd.read_pickle(dataset_path)
 
     # sematic - Semantic Representation
