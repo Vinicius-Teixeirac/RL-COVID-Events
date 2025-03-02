@@ -53,12 +53,12 @@ def get_umap_graph(representation: np.ndarray,
         logging.error("Inconsistent dimension")
         raise ValueError(f"dim ({dim}) cannot be greater than the number of features in representation ({representation.shape[1]}).")
 
-    # defines the UMAP settings
+    # Defines the UMAP settings
     umap = UMAP(n_neighbors=n_neighbors, n_components=dim, min_dist=min_dist, metric='euclidean',
                    random_state=random_state, init=initialization)
-    # fits it to the representation 
+    # Fits it to the representation 
     umap.fit(representation)
-    # gets the new transformed space
+    # Gets the new transformed space
     representation_UMAP = umap.transform(representation)
     
     # Constructs k-nearest neighbors graph (returns a sparse matrix)

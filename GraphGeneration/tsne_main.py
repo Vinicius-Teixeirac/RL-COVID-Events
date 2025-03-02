@@ -3,7 +3,7 @@ import argparse
 from pathlib import Path
 
 from GraphGeneration import get_pca_reduction, get_tsne_graph
-from utils import load_representation, save_edges
+from utils import load_event_features, save_edges
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
@@ -30,7 +30,7 @@ if __name__ == "__main__":
     apply_pca = bool(args.apply_pca)
 
     # Loading representation
-    representation = load_representation(dataset_name, "final")
+    representation = load_event_features(dataset_name, "final")
 
     # Applying PCA if needed
     if apply_pca:

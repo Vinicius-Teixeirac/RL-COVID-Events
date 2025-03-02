@@ -42,11 +42,11 @@ def get_pca_graph(representation: np.ndarray,
         logging.error("Inconsistent dimension")
         raise ValueError(f"dim ({dim}) cannot be greater than the number of features in representation ({representation.shape[1]}).")
 
-    # defines the PCA settings
+    # Defines the PCA settings
     pca = PCA(n_components=dim, whiten=whiten)
-    # fits it to representation
+    # Fits it to representation
     pca.fit(representation)
-    # gets the new transformed space
+    # Gets the new transformed space
     representation_pca = pca.transform(representation)
 
     # Constructs k-nearest neighbors graph (returns a sparse matrix)

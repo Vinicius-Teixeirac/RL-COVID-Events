@@ -7,7 +7,7 @@ from GraphEvaluation import compare_graphs
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 if __name__ == "__main__":
-    # parsing the evaluation arguments
+    # Parsing the evaluation arguments
     parser = argparse.ArgumentParser(description="Evaluate graph representations in parallel.")
     parser.add_argument('--dataset_path', type=str, help='The path for the current dataset file')
     parser.add_argument("--reference_folder", type=str, default="./GeneratedGraphs/Consistency", help="Directory for consistency graphs.")

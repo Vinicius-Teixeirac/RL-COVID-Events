@@ -1,54 +1,167 @@
 #!/bin/bash
-set -euo pipefail  # Ensures the script exits on errors, unset variables, and pipeline failures
-
-# Initializes PYTHONPATH safely
-export PYTHONPATH="$(pwd):${PYTHONPATH:-}"
-
-mkdir -p logs
-
-# Defines where the datasets are stored.
-dataset_dir="DataPreparation/UsageDatasets"
-datasets=("$dataset_dir"/*.pkl)
-
-# Defines a maximum number of parallel jobs.
-MAX_PARALLEL_JOBS=10
-job_count=0
+set -euo pipefail
 
 ###############################################
-# Given the number of rows in the dataset, it generates
-# a set of hyperparameter values for seven groups:
-# ks, kg, kt, kpca, ktsne, kumap, and umap_neighbors.
-# It outputs each group on its own line.
+# Logging function.
+###############################################
+log_msg() {
+  local level="$1"
+  shift
+  local message="$*"
+  if [ -n "${MAIN_LOG-}" ]; then
+    {
+      flock -x 200
+      echo "$(date '+%Y-%m-%d %H:%M:%S') [$level] - $message"
+    } >> "$MAIN_LOG" 2>&1 200>"$LOCK_FILE"
+  else
+    echo "$(date '+%Y-%m-%d %H:%M:%S') [$level] - $message" >&2
+  fi
+}
+
+###############################################
+# Returns a log file name based on parameters.
+###############################################
+get_log_file() {
+  local base_dir="$1"
+  local prefix="$2"
+  local dataset_stem="$3"
+  shift 3
+  local params="$*"
+  echo "${base_dir}/${prefix}_${dataset_stem}_${params}.log"
+}
+
+###############################################
+# Execute a command if the log file is missing or does not contain the success marker.
+# Usage: execute_if_not_done <log_file> <marker> <command> [args...]
+###############################################
+execute_if_not_done() {
+  local log_file="$1"
+  local marker="${2:-}"
+  shift 2
+  if [ ! -s "$log_file" ] || { [ -n "$marker" ] && ! grep -Fq "$marker" "$log_file"; }; then
+    if ! "$@" > "$log_file" 2>&1; then
+      log_msg "ERROR" "Command failed: $*"
+      return 1
+    fi
+  fi
+}
+
+###############################################
+# Check required dependencies.
+###############################################
+check_dependencies() {
+  local missing_deps=()
+  for dep in python jupyter papermill parallel bc; do
+    if ! type -p "$dep" &>/dev/null; then
+      missing_deps+=("$dep")
+    fi
+  done
+  if (( ${#missing_deps[@]} )); then
+    echo "Error: Missing dependencies: ${missing_deps[*]}. Please install them before running the script." >&2
+    exit 1
+  fi
+}
+
+###############################################
+# Run preprocessing if not already done.
+###############################################
+run_preprocessing() {
+  if [ -s "$PREPROC_LOG" ] && grep -Fq "Preprocessing completed successfully" "$PREPROC_LOG"; then
+      log_msg "INFO" "Preprocessing already completed. Skipping preprocessing step."
+  else
+      log_msg "INFO" "Starting preprocessing..."
+      if ! jupyter nbconvert --to notebook --execute DataPreparation/pre_processing_datasets.ipynb > /dev/null 2> "$PREPROC_LOG"; then
+        log_msg "ERROR" "Preprocessing failed. Check $PREPROC_LOG for details."
+        exit 1
+      fi
+      echo "Preprocessing completed successfully" >> "$PREPROC_LOG"
+      log_msg "INFO" "Preprocessing completed successfully."
+  fi
+}
+
+###############################################
+# Run evaluation for a given method.
+###############################################
+run_evaluation() {
+  local method="$1"
+  local dataset_path="$2"
+  local dataset_stem="$3"
+  local base_log_dir="$4"  # e.g. "$LOG_DIR/${dataset_stem}"
+  local log_eval
+  log_eval=$(get_log_file "$base_log_dir/Evaluation" "eval_${method//+/_}" "$dataset_stem")
+  mkdir -p "$base_log_dir/Evaluation"
+
+  local comp_folder n_jobs
+  case "$method" in
+    PCA)
+      comp_folder="./GeneratedGraphs/PCA"
+      n_jobs=5
+      ;;
+    TSNE)
+      comp_folder="./GeneratedGraphs/TSNE"
+      n_jobs=25
+      ;;
+    "TSNE+PCA")
+      comp_folder="./GeneratedGraphs/TSNE_PCA"
+      n_jobs=25
+      ;;
+    UMAP)
+      comp_folder="./GeneratedGraphs/UMAP"
+      n_jobs=70
+      ;;
+    *)
+      log_msg "ERROR" "Unknown evaluation method: $method"
+      return 1
+      ;;
+  esac
+
+  execute_if_not_done "$log_eval" "evaluation completed successfully" \
+    python GraphEvaluation/evaluation_main.py \
+      --dataset_path "$dataset_path" \
+      --reference_folder "./GeneratedGraphs/Consistency" \
+      --comparison_folder "$comp_folder" \
+      --method "$method" \
+      --output_dir "./EvaluationResults" \
+      --n_jobs "$n_jobs" || \
+      log_msg "ERROR" "Evaluation for $method failed for dataset: $dataset_stem"
+}
+
+###############################################
+# Generate critical difference diagram.
+###############################################
+generate_critdd() {
+  local dataset_stem="$1"
+  local dataset_path="$2"
+  local critdd_log="$LOG_DIR/${dataset_stem}/critdd_${dataset_stem}.log"
+  mkdir -p "$LOG_DIR/${dataset_stem}"
+  execute_if_not_done "$critdd_log" "critical difference diagrams generated successfully" \
+    papermill GraphEvaluation/critdd_template.ipynb \
+      "$CRITDD_RESULTS/critdd_${dataset_stem}.ipynb" \
+      -p dataset "$dataset_stem" || \
+      log_msg "ERROR" "Critical difference diagram generation failed for dataset: $dataset_stem"
+}
+
+###############################################
+# Generate hyperparameter groups.
+# Outputs 7 lines (one per hyperparameter group).
 ###############################################
 generate_hyperparams() {
-  local num_rows=$1
+  local num_rows="$1"
   local num_parts=10
   local min_value=1
   local max_value
   max_value=$(echo "scale=0; sqrt($num_rows)" | bc)
-
-  # Ensures max_value is at least min_value.
-  if (( max_value < min_value )); then
-    max_value=$min_value
-  fi
-
-  # Calculates interval if more than one part.
+  (( max_value < min_value )) && max_value=$min_value
   local interval=0
-  if (( num_parts > 1 )); then
-    interval=$(( (max_value - min_value) / (num_parts - 1) ))
-  fi
-
-  # Initializes arrays for each hyperparameter group.
+  (( num_parts > 1 )) && interval=$(( (max_value - min_value) / (num_parts - 1) ))
   local ks=() kg=() kt=() kpca=() ktsne=() kumap=() umap_neighbors=()
-
+  local i value
   for (( i=0; i<num_parts; i++ )); do
-    local value
     if (( i == num_parts - 1 )); then
-      value=$max_value
+      value="$max_value"
     else
       value=$(( min_value + i * interval ))
     fi
-
     ks+=("$value")
     kg+=("$value")
     kt+=("$value")
@@ -57,9 +170,6 @@ generate_hyperparams() {
     kumap+=("$value")
     umap_neighbors+=("$value")
   done
-
-  # Outputs each group on its own line.
-  # (The order is: ks, kg, kt, kpca, ktsne, kumap, umap_neighbors)
   echo "${ks[*]}"
   echo "${kg[*]}"
   echo "${kt[*]}"
@@ -70,239 +180,236 @@ generate_hyperparams() {
 }
 
 ###############################################
-# Main loop: iterates over each dataset.
+# Functions to run graph generation commands in parallel.
+# These helper functions are exported so GNU parallel can call them.
 ###############################################
-for dataset_path in "${datasets[@]}"; do
-  {
-    dataset_name=$(basename "$dataset_path")
-    dataset_stem="${dataset_name%.pkl}"
 
-    # 1. Generate representations for the dataset.
-    python DataPreparation/generate_representations.py \
-      --dataset "$dataset_path" \
-      --output_dir DatasetRepresentations
+# Consistency Graphs.
+run_consistency_cmd() {
+  local ks="$1" kg="$2" kt="$3"
+  local log_file
+  log_file=$(get_log_file "$LOG_DIR/${dataset_stem}/Consistency" "consistency" "$dataset_stem" "$ks" "$kg" "$kt")
+  execute_if_not_done "$log_file" "Edges saved successfully" \
+    python GraphEvaluation/consistency_main.py --hyperparameters "$ks" "$kg" "$kt" --dataset_path "$dataset_path"
+}
+export -f run_consistency_cmd
 
-    # 2. Determine number of rows (used for computing hyperparameters).
-    num_rows=$(python -c "import pandas as pd; print(len(pd.read_pickle('$dataset_path')))")
+run_consistency_graphs() {
+  local log_dir="$LOG_DIR/${dataset_stem}/Consistency"
+  mkdir -p "$log_dir"
+  parallel -j "$MAX_PARALLEL_JOBS" run_consistency_cmd ::: "${ks_values[@]}" ::: "${kg_values[@]}" ::: "${kt_values[@]}"
+}
 
-    # 3. Read the hyperparameters (7 lines, one per group).
-    readarray -t hypergroups < <(generate_hyperparams "$num_rows")
+# PCA Graphs.
+run_pca_cmd() {
+  local kpca="$1" whiten="$2"
+  local log_file
+  log_file=$(get_log_file "$LOG_DIR/${dataset_stem}/PCA" "pca" "$dataset_stem" "$kpca" "$whiten")
+  execute_if_not_done "$log_file" "" \
+    python GraphGeneration/pca_main.py --hyperparameters "$kpca" 2 --whiten "$whiten" --dataset_path "$dataset_path"
+}
+export -f run_pca_cmd
 
-    # 4. Split each hyperparameter group into arrays.
-    IFS=' ' read -r -a ks_values             <<< "${hypergroups[0]}"
-    IFS=' ' read -r -a kg_values             <<< "${hypergroups[1]}"
-    IFS=' ' read -r -a kt_values             <<< "${hypergroups[2]}"
-    IFS=' ' read -r -a kpca_values           <<< "${hypergroups[3]}"
-    IFS=' ' read -r -a ktsne_values          <<< "${hypergroups[4]}"
-    IFS=' ' read -r -a kumap_values          <<< "${hypergroups[5]}"
-    IFS=' ' read -r -a umap_neighbors_values <<< "${hypergroups[6]}"
+run_pca_graphs() {
+  local log_dir="$LOG_DIR/${dataset_stem}/PCA"
+  mkdir -p "$log_dir"
+  local whiten_arr=(0 1)
+  parallel -j "$MAX_PARALLEL_JOBS" run_pca_cmd ::: "${kpca_values[@]}" ::: "${whiten_arr[@]}"
+}
 
-    # --- Consistency Graphs ---
-    log_consistency="logs/${dataset_stem}/Consistency"
-    mkdir -p "$log_consistency"
-    for ks in "${ks_values[@]}"; do
-      for kg in "${kg_values[@]}"; do
-        for kt in "${kt_values[@]}"; do
-          log_file="${log_consistency}/consistency_${dataset_stem}_${ks}_${kg}_${kt}.log"
-          if [ ! -s "$log_file" ] || ! grep -q "Edges saved successfully" "$log_file"; then
-            python GraphEvaluation/consistency_main.py \
-              --hyperparameters "$ks" "$kg" "$kt" \
-              --dataset_path "$dataset_path" > "$log_file" 2>&1 &
-            job_count=$((job_count + 1))
-            if (( job_count >= MAX_PARALLEL_JOBS )); then
-              wait
-              job_count=0
-            fi
-          fi
-        done
-      done
-    done
-
-    # --- PCA Graphs ---
-    log_pca="logs/${dataset_stem}/PCA"
-    mkdir -p "$log_pca"
-    desired_dimensionality=2
-    whiten=(0 1)
-    for kpca in "${kpca_values[@]}"; do
-      for value in "${whiten[@]}"; do
-        log_file="${log_pca}/pca_${dataset_stem}_${kpca}_${value}.log"
-        if [ ! -s "$log_file" ] || ! grep -q "Edges saved successfully" "$log_file"; then
-          python GraphGeneration/pca_main.py \
-            --hyperparameters "$kpca" "$desired_dimensionality" \
-            --whiten "$value" \
-            --dataset_path "$dataset_path" > "$log_file" 2>&1 &
-          job_count=$((job_count + 1))
-          if (( job_count >= MAX_PARALLEL_JOBS )); then
-            wait
-            job_count=0
-          fi
-        fi
-      done
-    done
-
-    # --- t-SNE Graphs ---
-    log_tsne="logs/${dataset_stem}/TSNE"
-    mkdir -p "$log_tsne"
-    ppxty_values=(5 10 20 30 40 50)
-    initialization=("pca" "spectral")
-    rnd_state=42
-    for ktsne in "${ktsne_values[@]}"; do
-      for ppxty in "${ppxty_values[@]}"; do
-        for init in "${initialization[@]}"; do
-          log_file="${log_tsne}/tsne_${dataset_stem}_${ktsne}_${ppxty}_${init}.log"
-          if [ ! -s "$log_file" ] || ! grep -q "Edges saved successfully" "$log_file"; then
-            python GraphGeneration/tsne_main.py \
-              --hyperparameters "$ktsne" "$ppxty" "$desired_dimensionality" "$rnd_state" \
-              --apply_pca 0 \
-              --initialization "$init" \
-              --dataset_path "$dataset_path" > "$log_file" 2>&1 &
-            job_count=$((job_count + 1))
-            if (( job_count >= MAX_PARALLEL_JOBS )); then
-              wait
-              job_count=0
-            fi
-          fi
-        done
-      done
-    done
-
-    # --- PCA + t-SNE Graphs ---
-    for ktsne in "${ktsne_values[@]}"; do
-      for ppxty in "${ppxty_values[@]}"; do
-        for init in "${initialization[@]}"; do
-          log_file="${log_tsne}/tsne_pca_${dataset_stem}_${ktsne}_${ppxty}_${init}.log"
-          if [ ! -s "$log_file" ] || ! grep -q "Edges saved successfully" "$log_file"; then
-            python GraphGeneration/tsne_main.py \
-              --hyperparameters "$ktsne" "$ppxty" "$desired_dimensionality" "$rnd_state" \
-              --apply_pca 1 \
-              --initialization "$init" \
-              --dataset_path "$dataset_path" > "$log_file" 2>&1 &
-            job_count=$((job_count + 1))
-            if (( job_count >= MAX_PARALLEL_JOBS )); then
-              wait
-              job_count=0
-            fi
-          fi
-        done
-      done
-    done
-
-    # --- UMAP Graphs ---
-    log_umap="logs/${dataset_stem}/UMAP"
-    mkdir -p "$log_umap"
-    min_dist_values=(0.0 0.25 0.5 0.75 0.99)
-    for kumap in "${kumap_values[@]}"; do
-      for umap_neighbors in "${umap_neighbors_values[@]}"; do
-        for min_dist in "${min_dist_values[@]}"; do
-          for init in "${initialization[@]}"; do
-            log_file="${log_umap}/umap_${dataset_stem}_${kumap}_${umap_neighbors}_${min_dist}_${init}.log"
-            if [ ! -s "$log_file" ] || ! grep -q "Edges saved successfully" "$log_file"; then
-              python GraphGeneration/umap_main.py \
-                --int_hyperparameters "$kumap" "$umap_neighbors" "$desired_dimensionality" "$rnd_state" \
-                --float_hyperparameters "$min_dist" \
-                --initialization "$init" \
-                --dataset_path "$dataset_path" > "$log_file" 2>&1 &
-              job_count=$((job_count + 1))
-              if (( job_count >= MAX_PARALLEL_JOBS )); then
-                wait
-                job_count=0
-              fi
-            fi
-          done
-        done
-      done
-    done
-
-    # Waits for all graph generation processes for this dataset
-    wait
-
-    # --- Evaluation step for each method in parallel ---
-    # evaluation_main.py for PCA, t-SNE, and UMAP work individually
-    
-    log_eval="logs/${dataset_stem}/Evaluation"
-    mkdir -p "$log_eval"
-    {
-      log_file="${log_eval}/eval_pca_${dataset_stem}.log"
-      if [ ! -s "$log_file" ] || ! grep -q "evaluation completed successfully" "$log_file"; then
-        python GraphEvaluation/evaluation_main.py \
-          --dataset_path "$dataset_path" \
-          --reference_folder "./GeneratedGraphs/Consistency" \
-          --comparison_folder "./GeneratedGraphs/PCA" \
-          --method "PCA" \
-          --output_dir "./EvaluationResults" \
-          --n_jobs 1 > "$log_file" 2>&1
-      fi
-      echo "PCA evaluation done for $dataset_stem" >> logs/${dataset_stem}/success.log
-    } &
-
-    {
-      log_file="${log_eval}/eval_tsne_${dataset_stem}.log"
-      if [ ! -s "$log_file" ] || ! grep -q "evaluation completed successfully" "$log_file"; then
-        python GraphEvaluation/evaluation_main.py \
-          --dataset_path "$dataset_path" \
-          --reference_folder "./GeneratedGraphs/Consistency" \
-          --comparison_folder "./GeneratedGraphs/TSNE" \
-          --method "TSNE" \
-          --output_dir "./EvaluationResults" \
-          --n_jobs 5 > "$log_file" 2>&1
-      fi
-      echo "TSNE evaluation done for $dataset_stem" >> logs/${dataset_stem}/success.log
-    } &
-
-    {
-      log_file="${log_eval}/eval_tsne_pca_${dataset_stem}.log"
-      if [ ! -s "$log_file" ] || ! grep -q "evaluation completed successfully" "$log_file"; then
-        python GraphEvaluation/evaluation_main.py \
-          --dataset_path "$dataset_path" \
-          --reference_folder "./GeneratedGraphs/Consistency" \
-          --comparison_folder "./GeneratedGraphs/TSNE_PCA" \
-          --method "TSNE+PCA" \
-          --output_dir "./EvaluationResults" \
-          --n_jobs 3 > "$log_file" 2>&1
-      fi
-      echo "TSNE evaluation done for $dataset_stem" >> logs/${dataset_stem}/success.log
-    } &
-
-    {
-      log_file="${log_eval}/eval_umap_${dataset_stem}.log"
-      if [ ! -s "$log_file" ] || ! grep -q "evaluation completed successfully" "$log_file"; then
-        python GraphEvaluation/evaluation_main.py \
-          --dataset_path "$dataset_path" \
-          --reference_folder "./GeneratedGraphs/Consistency" \
-          --comparison_folder "./GeneratedGraphs/UMAP" \
-          --method "UMAP" \
-          --output_dir "./EvaluationResults" \
-          --n_jobs 42 > "$log_file" 2>&1
-      fi
-      echo "UMAP evaluation done for $dataset_stem" >> logs/${dataset_stem}/success.log
-    } &
-
-    # Waits for the three evaluations to finish
-    wait
-
-    {
-      mkdir -p CritddResults
-      log_file="logs/${dataset_stem}/critdd_${dataset_stem}.log"
-      if [ ! -s "$log_file" ] || ! grep -q "critical difference diagrams generated successfully" "$log_file"; then
-        papermill GraphEvaluation/critdd_template.ipynb \
-                  CritddResults/critdd_${dataset_stem}.ipynb \
-                  -p dataset "$dataset_stem" > "$log_file" 2>&1
-      fi
-
-      echo "Process for dataset $dataset_stem completed successfully!" >> logs/${dataset_stem}/success.log
-    } &
-
-  } &
-
-  # Throttles the outer loop as well.
-  job_count=$((job_count + 1))
-  if (( job_count >= MAX_PARALLEL_JOBS )); then
-    wait
-    job_count=0
+# t-SNE Graphs.
+run_tsne_cmd() {
+  local ktsne="$1" ppxty="$2" init="$3" apply_pca="$4"
+  local prefix
+  if [ "$apply_pca" -eq 1 ]; then
+    prefix="tsne_pca"
+  else
+    prefix="tsne"
   fi
-done
+  local log_file
+  log_file=$(get_log_file "$LOG_DIR/${dataset_stem}/TSNE" "$prefix" "$dataset_stem" "$ktsne" "$ppxty" "$init")
+  execute_if_not_done "$log_file" "" \
+    python GraphEvaluation/tsne_main.py \
+      --hyperparameters "$ktsne" "$ppxty" 2 42 \
+      --apply_pca "$apply_pca" \
+      --initialization "$init" \
+      --dataset_path "$dataset_path"
+}
+export -f run_tsne_cmd
 
-# Ensures all datasets complete before finishing script
-wait
+run_tsne_graphs() {
+  local log_dir="$LOG_DIR/${dataset_stem}/TSNE"
+  mkdir -p "$log_dir"
+  local ppxty_values=(5 10 20 30 40 50)
+  local init_arr=("pca" "spectral")
+  # Without PCA.
+  parallel -j "$MAX_PARALLEL_JOBS" run_tsne_cmd ::: "${ktsne_values[@]}" ::: "${ppxty_values[@]}" ::: "${init_arr[@]}" ::: 0;
+  # With PCA.
+  parallel -j "$MAX_PARALLEL_JOBS" run_tsne_cmd ::: "${ktsne_values[@]}" ::: "${ppxty_values[@]}" ::: "${init_arr[@]}" ::: 1;
+}
 
-echo "All processes completed successfully!" >> logs/${dataset_stem}/success.log
+# UMAP Graphs.
+run_umap_cmd() {
+  local kumap="$1" umap_neighbors="$2" min_dist="$3" init="$4"
+  local log_file
+  log_file=$(get_log_file "$LOG_DIR/${dataset_stem}/UMAP" "umap" "$dataset_stem" "$kumap" "$umap_neighbors" "$min_dist" "$init")
+  execute_if_not_done "$log_file" "" \
+    python GraphGeneration/umap_main.py --int_hyperparameters "$kumap" "$umap_neighbors" 2 42 --float_hyperparameters "$min_dist" --initialization "$init" --dataset_path "$dataset_path"
+}
+export -f run_umap_cmd
+
+run_umap_graphs() {
+  local log_dir="$LOG_DIR/${dataset_stem}/UMAP"
+  mkdir -p "$log_dir"
+  local min_dist_values=(0.0 0.25 0.5 0.75 0.99)
+  local init_arr=("pca" "spectral")
+  parallel -j "$MAX_PARALLEL_JOBS" run_umap_cmd ::: "${kumap_values[@]}" ::: "${umap_neighbors_values[@]}" ::: "${min_dist_values[@]}" ::: "${init_arr[@]}"
+}
+
+export -f run_consistency_cmd run_consistency_graphs \
+  run_pca_cmd run_pca_graphs \
+  run_tsne_cmd run_tsne_graphs \
+  run_umap_cmd run_umap_graphs 
+
+###############################################
+# Process a single dataset.
+###############################################
+process_dataset() {
+  local dataset_path="$1"
+  local dataset_name
+  dataset_name=$(basename "$dataset_path")
+  dataset_stem="${dataset_name%.pkl}"
+  export dataset_stem dataset_path
+  log_msg "INFO" "Starting processing for dataset: $dataset_stem"
+  mkdir -p "$LOG_DIR/$dataset_stem"
+
+  # 1. Generate Event Features.
+  if ! python DataPreparation/event_features.py \
+         --dataset "$dataset_path" \
+         --output_dir "$OUTPUT_DIR" \
+         > "$LOG_DIR/$dataset_stem/event_features.log" 2>&1; then
+    log_msg "ERROR" "Feature generation failed for dataset: $dataset_stem"
+    return 1
+  fi
+
+  # 2. Determine number of rows.
+  local num_rows
+  num_rows=$(python -c "import pandas as pd; print(len(pd.read_pickle('$dataset_path')))" 2>> "$LOG_DIR/$dataset_stem/num_rows.err")
+  if [ -z "$num_rows" ]; then
+    log_msg "ERROR" "Could not determine number of rows for dataset: $dataset_stem"
+    return 1
+  fi
+
+  # 3. Generate hyperparameter groups.
+  local hypergroups
+  mapfile -t hypergroups < <(generate_hyperparams "$num_rows")
+  if [ "${#hypergroups[@]}" -ne 7 ]; then
+    log_msg "ERROR" "Hyperparameter generation failed for dataset: $dataset_stem"
+    return 1
+  fi
+
+  # Read hyperparameter groups into arrays.
+  IFS=' ' read -r -a ks_values             <<< "${hypergroups[0]}"
+  IFS=' ' read -r -a kg_values             <<< "${hypergroups[1]}"
+  IFS=' ' read -r -a kt_values             <<< "${hypergroups[2]}"
+  IFS=' ' read -r -a kpca_values           <<< "${hypergroups[3]}"
+  IFS=' ' read -r -a ktsne_values          <<< "${hypergroups[4]}"
+  IFS=' ' read -r -a kumap_values          <<< "${hypergroups[5]}"
+  IFS=' ' read -r -a umap_neighbors_values <<< "${hypergroups[6]}"
+
+  ###############################################
+  # Run graph generation steps.
+  ###############################################
+  run_consistency_graphs
+  run_pca_graphs
+  run_tsne_graphs
+  run_umap_graphs
+
+  ###############################################
+  # Evaluation Steps.
+  ###############################################
+  local log_eval_base="$LOG_DIR/${dataset_stem}"
+  for method in "PCA" "TSNE" "TSNE+PCA" "UMAP"; do
+    run_evaluation "$method" "$dataset_path" "$dataset_stem" "$log_eval_base"
+  done
+
+  ###############################################
+  # Generate critical difference diagram.
+  ###############################################
+  generate_critdd "$dataset_stem" "$dataset_path"
+
+  log_msg "INFO" "Finished processing dataset: $dataset_stem"
+}
+export -f process_dataset
+export -f log_msg generate_hyperparams get_log_file execute_if_not_done run_evaluation generate_critdd
+
+###############################################
+# Main Script Execution
+###############################################
+if [[ "${1-}" == "-h" || "${1-}" == "--help" ]]; then
+  cat <<EOF
+Usage: $(basename "$0") [options]
+
+Options:
+  -h, --help         Show this help message.
+
+Description:
+  This script processes datasets by generating event features, computing hyperparameters,
+  generating graphs using various methods, and evaluating the results.
+EOF
+  exit 0
+fi
+
+# Load configuration from .env file if available.
+CONFIG_FILE="${CONFIG_FILE:-./.env}"
+if [ -f "$CONFIG_FILE" ]; then
+  set -a
+  source "$CONFIG_FILE"
+  set +a
+fi
+
+# Set configurable paths with defaults.
+DATASET_DIR="${DATASET_DIR:-DataPreparation/UsageDatasets}"
+OUTPUT_DIR="${OUTPUT_DIR:-DatasetEventFeatures}"
+LOG_DIR="${LOG_DIR:-logs}"
+CRITDD_RESULTS="${CRITDD_RESULTS:-CritddResults}"
+MAX_PARALLEL_JOBS="${MAX_PARALLEL_JOBS:-10}"
+
+# Export them for use in parallel subshells.
+export DATASET_DIR OUTPUT_DIR LOG_DIR CRITDD_RESULTS MAX_PARALLEL_JOBS
+
+# Create necessary directories.
+mkdir -p "$LOG_DIR" "$CRITDD_RESULTS"
+
+# Centralized summary log and lock file.
+MAIN_LOG="$LOG_DIR/script_summary.log"
+PREPROC_LOG="$LOG_DIR/pre_processing.log"
+LOCK_FILE="/tmp/script_log.lock"
+
+# Catch errors and log them.
+trap 'log_msg "ERROR" "Error: Command '\''$BASH_COMMAND'\'' failed on line ${LINENO}. Exiting..."; exit 1' ERR
+
+# Check dependencies.
+check_dependencies
+
+# Initialize PYTHONPATH safely.
+export PYTHONPATH="$(pwd):${PYTHONPATH:-}"
+
+# Run preprocessing to get the datasets.
+run_preprocessing
+
+# Gather dataset files AFTER preprocessing.
+shopt -s nullglob
+datasets=( "$DATASET_DIR"/*.pkl )
+shopt -u nullglob
+
+if [ ${#datasets[@]} -eq 0 ]; then
+  log_msg "ERROR" "No .pkl files found in $DATASET_DIR after preprocessing."
+  exit 1
+fi
+
+# Process all datasets in parallel.
+printf "%s\n" "${datasets[@]}" | parallel -j "$MAX_PARALLEL_JOBS" process_dataset {}
+
+log_msg "INFO" "All processes completed successfully!"
+

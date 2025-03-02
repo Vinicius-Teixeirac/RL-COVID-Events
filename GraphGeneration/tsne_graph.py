@@ -14,7 +14,7 @@ def get_tsne_graph(representation: np.ndarray,
                    initialization: str,
                    dim: int,
                    rnd_state: int,
-                   n_jobs: int = 8) -> nx.DiGraph:
+                   n_jobs: int = 10) -> nx.DiGraph:
     """
     Generates a k-nearest neighbors graph using t-SNE-reduced representation.
 
@@ -60,9 +60,9 @@ def get_tsne_graph(representation: np.ndarray,
         logging.error("Inconsistent perplexity")
         raise ValueError(f"Perplexity ({ppxty}) must be smaller than the number of samples ({representation.shape[1]}).")
 
-    # defines the t-SNE settings 
+    # Defines the t-SNE settings 
     tsne = TSNE(n_components=dim, perplexity=ppxty, random_state=rnd_state, metric='euclidean', initialization=initialization, n_jobs=n_jobs) 
-    # gets the new transformed space
+    # Gets the new transformed space
     representation_tSNE = tsne.fit(representation) 
 
     # Constructs k-nearest neighbors graph (returns a sparse matrix)
