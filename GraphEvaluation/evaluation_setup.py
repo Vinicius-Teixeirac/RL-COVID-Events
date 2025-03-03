@@ -5,7 +5,7 @@ import logging
 import pandas as pd
 from joblib import Parallel, delayed
 
-from utils import load_edges
+from Utils import load_edges
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 

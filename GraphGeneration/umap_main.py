@@ -2,7 +2,7 @@ import argparse
 from pathlib import Path
 
 from GraphGeneration import get_umap_graph
-from utils import load_event_features, save_edges
+from Utils import load_event_features, save_edges
 
 if __name__ == "__main__":
     # Parsing the arguments that'll be used on the UMAP method

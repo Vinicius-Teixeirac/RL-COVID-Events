@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 from sklearn.preprocessing import normalize, StandardScaler
 
-from utils import save_event_features  # Renamed for consistency
+from Utils import save_event_features  # Renamed for consistency
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 

@@ -3,7 +3,7 @@ import argparse
 from pathlib import Path
 
 from GraphGeneration import get_pca_graph
-from utils import load_event_features, save_edges
+from Utils import load_event_features, save_edges
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
