@@ -24,12 +24,12 @@ Concatenating these features, we construct an **initial raw feature vector** for
 
 
 <div style="display: flex; justify-content: center; gap: 8px;">
-    <img src="images/semantic_graph_example.png" alt="Semantic Graph" style="width: 50%; max-width: 500px;">
-    <img src="images/geospatial_graph_example.png" alt="Geospatial Graph" style="width: 50%; max-width: 500px;">
+    <img src="images/semantic_graph_example.png" alt="Semantic Graph" style="width: 49%; max-width: 500px;">
+    <img src="images/geospatial_graph_example.png" alt="Geospatial Graph" style="width: 49%; max-width: 500px;">
 </div>
 
 <div style="display: flex; justify-content: center; gap: 10px; margin-top: 20px;">
-    <img src="images/temporal_graph_example.png" alt="Temporal Graph" style="width: 100%; max-width: 1000px;">
+    <img src="images/temporal_graph_example.png" alt="Temporal Graph" style="width: 99%; max-width: 1000px;">
 </div>
 
 Finally, we construct a **reference consistency graph** by summing the adjacency matrices of the three graphs and applying a threshold to the resulting values. An edge is established between two nodes if their summed value meets or exceeds this threshold, meaning that such edge exists at least in *threshold* of the three graphs. This final structure serves as a foundation for evaluating how effectively various dimensionality reduction techniques preserve local neighborhood structures in high-dimensional event-related data.
