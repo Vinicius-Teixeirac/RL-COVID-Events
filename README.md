@@ -1,48 +1,66 @@
-# RL-COVID-Events 
+# RL-COVID-Events  
 
-This repository contains the code necessary to conduct experiments evaluating neighborhood topological preservation in well-established dimensionality reduction methods applied to event-related COVID data.
+This repository provides the necessary code and resources for conducting experiments that evaluate **neighborhood topological preservation** in widely used **dimensionality reduction techniques** applied to **event-related COVID-19 data**.  
 
-## Overview
+## Overview  
 
-The project processes a dataset of COVID-related news articles. Each instance includes:
-- **Text Content:** The full news article.
-- **Geographical Coordinates:** Latitude and longitude of reported events.
-- **Timestamps:** The corresponding dates of the events.
+This project processes a dataset of **COVID-19-related news articles**, where each article describes an event. Every event in the dataset includes the following key components:  
 
-We get samples from the dataset. From each sample, we extract:
-- **Semantic Features:** 768-dimensional text embeddings generated using a BERT model.
-- **Geospatial Features:** Latitude-longitude coordinates.
-- **Temporal Features:** Timestamps.
+- **Text Content:** The news article's **headline**, which serves as a textual summary of the event.  
+- **Geographical Coordinates:** The **latitude and longitude** of the location where the event occurred or was reported.  
+- **Timestamps:** The **date** associated with the reported event.  
 
-These features are used to construct an initial raw feature vector and to generate three independent nearest-neighborhood graphs representing:
-- Semantic similarity.
-- Geospatial proximity.
-- Temporal closeness.
+To analyze this dataset, we sample groups of events based on predefined **labels**. For each sampled event, which will became itself an usage dataset, we extract and transform its attributes into numerical *event features* for further processing:  
 
-A reference consistency graph is then constructed by merging these three graphs.
+- **Semantic Features:** The news headlines are converted into **768-dimensional embeddings** using a **pre-trained BERT model**. These embeddings capture the semantic meaning of the text.  
+- **Geospatial Features:** The event's **latitude and longitude** are used as raw geographical coordinates to represent spatial positioning.  
+- **Temporal Features:** The **event timestamps** are extracted and converted into a numerical format that preserves temporal relationships.  
 
-(IMAGE HERE ILLUSTRATING THE CORE IDEA)
+Concatenating these features, we construct an **initial raw feature vector** for each event. Additionally, we generate three separate **nearest-neighbor graphs**, each emphasizing a different type of relationship:  
+
+- **Semantic Similarity Graph:** Connects events with similar textual meanings based on their BERT embeddings.  
+- **Geospatial Proximity Graph:** Connects events that occurred near each other geographically.  
+- **Temporal Closeness Graph:** Connects events that happened within a close time frame.  
+
+
+<div style="display: flex; justify-content: center; gap: 8px;">
+    <img src="images/semantic_graph_example.png" alt="Semantic Graph" style="width: 50%; max-width: 500px;">
+    <img src="images/geospatial_graph_example.png" alt="Geospatial Graph" style="width: 50%; max-width: 500px;">
+</div>
+
+<div style="display: flex; justify-content: center; gap: 10px; margin-top: 20px;">
+    <img src="images/temporal_graph_example.png" alt="Temporal Graph" style="width: 100%; max-width: 1000px;">
+</div>
+
+Finally, we construct a **reference consistency graph** by summing the adjacency matrices of the three graphs and applying a threshold to the resulting values. An edge is established between two nodes if their summed value meets or exceeds this threshold, meaning that such edge exists at least in *threshold* of the three graphs. This final structure serves as a foundation for evaluating how effectively various dimensionality reduction techniques preserve local neighborhood structures in high-dimensional event-related data.
+
+<div style="display: flex; justify-content: center; gap: 10px; margin-top: 20px;">
+    <img src="images/event_analysis.png" alt="Temporal Graph" style="width: 90%; max-width: 1000px;">
+</div>
 
 ## Methodology
 
-Dimensionality reduction techniques—**PCA**, **t-SNE**, and **UMAP**—are applied to the multidimensional raw feature vector (concatenating the embeddings, coordinates, and timestamps). The resulting lower-dimensional feature vectors are used to generate a new neighborhood graph, which is compared to the reference graph to evaluate preservation quality.
+Dimensionality reduction techniques —**PCA**, **PCA + t-SNE**, **t-SNE**, and **UMAP**— are applied to the multidimensional raw feature vector (concatenating the embeddings, coordinates, and timestamps). The resulting lower-dimensional feature vectors are used to generate a new neighborhood graph, which is compared to all reference graphs to evaluate preservation quality.
 
 The comparison considers the edges of each graph by computing:
-- **Precision:** Proportion of predicted edges that are correct.
-- **Recall:** Proportion of reference edges that were correctly predicted.
+- **Precision:** Proportion of generated edges that are correct, accordingly to the reference graph compared.
+- **Recall:** Proportion of reference edges that were correctly generated.
+- **F1-score:** The harmonic mean of **Precision** and **Recall**.
+
 
 ## Hyperparameters
 
-The evaluation varies several hyperparameters, including:
+The experiments varies several hyperparameters, including:
 - Number of neighbors in the semantic, geospatial, and temporal neighbors graphs.
 - Number of neighbors in the PCA-, t-SNE-, and UMAP-reduced neighbors graphs.
+- PCA `whitened` parameter.
 - t-SNE and UMAP initialization (PCA or Spectral).
 - t-SNE perplexity.
 - UMAP parameters: `n_neighbors` and `min_dist`.
 
 ## Evaluation
 
-After the evaluation step, Critical Difference Diagrams are generated to determine which dimensionality reduction method produces the most accurate feature vector compared to the reference consistency graph.
+Each combination of hyperameter generates a different graph. So, each technique and the consistency itself has many generated graphs to be compared. Each graph generated by a technique is compared to every consistency graph. Critical Difference Diagrams are generated to determine which dimensionality reduction method produces the most accurate feature vector compared to the reference consistency graph, for each usage dataset.
 
 # Technical Details
 
@@ -66,19 +84,48 @@ Building on these concepts, event analysis requires representations that incorpo
 - The new space should preserve, as much as possible, the original semantic, geospatial, and temporal proximities. Events with close description, geographical coordinates and dates must remain close in the new space.
 
 # Purpose
-This repository aims to evaluate whether methods like PCA, t-SNE, and UMAP can generate representations that faithfully preserve the original multi-dimensional proximities of event data. By leveraging consistency graphs —constructed from independently generated nearest-neighbor graphs for semantic, geospatial, and temporal features— we can assess how well these dimensionality reduction methods maintain the inherent structure of the data.
+This repository aims to evaluate whether tecniques like PCA, t-SNE, and UMAP can generate representations that faithfully preserve the original multi-dimensional proximities of event data. By leveraging consistency graphs —constructed from independently generated nearest-neighbor graphs for semantic, geospatial, and temporal features— we can assess how well these dimensionality reduction methods maintain the inherent structure of the data.
 
 If they perform well in that task, the new feature space is low-dimensional and maintain the original proximities, besides the fact they may be the main simple options for dimensionality reduction. If not, there's a path explore modern representation learning techniques.
 
 # How to run
-Every step present in the experiments is inside the run_experiments.sh, so a command like ./run_experiments in bash must be enough to generate the results. 
+All experimental steps are orchestrated via the `run_experiments.sh` script. To generate every result, without anyelse work, simply execute the following command in your terminal:
 
-(Side note: in future versions, an main.py will substitute run_experiments to achive a cross-plataform compatibility)
+```bash
+./run_experiments.sh
+```
+Before running the experiments, please ensure you have installed all necessary dependencies by reviewing the environment.yml or requirements.txt files.
 
-The experiments start with DataPreparation folder. The pre_processing_dataset.ipynb has the original dataset and its preprocessing steps to generate the sampled datasets to be used in our experiments. Then, for each dataset, event features are extracted by event_features.py
+**Note**: In future versions, run_experiments.sh will be replaced by a main.py script to improve cross-platform compatibility.
 
-After the feature extraction, in GraphEvaluation folder is possible to generate the reference neighbors graphs (by consistency_main.py) and in GraphGeneration folder the dimensionality reduction applied to data graphs (pca_main.py, tsne_main.py & umap_main.py)
+## Execution Workflow
 
-Once the graph generation process is finished, back in GraphEvaluation, there are the evaluation_main.py to examine the 
+The workflow that run_experiments.sh employs is equivalent to the following steps:
 
+- Data Preparation:
+
+Navigate to the DataPreparation folder.
+Open pre_processing_dataset.ipynb to process the original dataset and generate sampled datasets, which will be stored in the UsageDatasets folder.
+
+- Feature Extraction:
+
+For each dataset, run event_features.py to extract event features.
+The extracted features will be saved in the DatasetEventFeatures folder.
+
+- Graph Generation:
+
+Generate the reference nearest-neighbor graphs in the GraphEvaluation folder using consistency_main.py.
+Apply dimensionality reduction (via PCA, t-SNE, and UMAP) in the GraphGeneration folder by running pca_main.py, tsne_main.py, and umap_main.py.
+The generated graphs will be saved in the GeneratedGraphs folder.
+
+- Evaluation:
+
+Return to the GraphEvaluation folder and execute evaluation_main.py to calculate precision and recall by comparing each reduced graph with the reference consistency graph. Note this part can take a while, depending on how many graphs were generated.
+Finally, run the critdd_template to generate an analysis notebook that includes a critical difference diagram showing the best-performing technique.
+The results for each dataset will be stored in the CritddResults folder.
+
+- Side Notes:
+1. Review the run_experiments.sh script to configure the optimal hardware parameters (e.g., n_jobs, parallel execution, etc.) based on your system.
+2. Please note, this process may take some time. The results were generated using a highly up-to-date and powerful computer.
+3. The work is meant to be general-event-purpose; We are using COVID as background just to exemplify the methodology.
 # How to contribute

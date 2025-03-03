@@ -31,7 +31,7 @@ get_log_file() {
 }
 
 ###############################################
-# Execute a command if the log file is missing or does not contain the success marker.
+# Executes a command if the log file is missing or does not contain the success marker.
 # Usage: execute_if_not_done <log_file> <marker> <command> [args...]
 ###############################################
 execute_if_not_done() {
@@ -47,7 +47,7 @@ execute_if_not_done() {
 }
 
 ###############################################
-# Check required dependencies.
+# Checks required dependencies.
 ###############################################
 check_dependencies() {
   local missing_deps=()
@@ -63,14 +63,14 @@ check_dependencies() {
 }
 
 ###############################################
-# Run preprocessing if not already done.
+# Runs preprocessing if not already done.
 ###############################################
 run_preprocessing() {
   if [ -s "$PREPROC_LOG" ] && grep -Fq "Preprocessing completed successfully" "$PREPROC_LOG"; then
       log_msg "INFO" "Preprocessing already completed. Skipping preprocessing step."
   else
       log_msg "INFO" "Starting preprocessing..."
-      if ! jupyter nbconvert --to notebook --execute DataPreparation/pre_processing_datasets.ipynb > /dev/null 2> "$PREPROC_LOG"; then
+      if ! jupyter nbconvert --to notebook --execute --inplace DataPreparation/pre_processing_datasets.ipynb > /dev/null 2> "$PREPROC_LOG"; then
         log_msg "ERROR" "Preprocessing failed. Check $PREPROC_LOG for details."
         exit 1
       fi
@@ -80,7 +80,7 @@ run_preprocessing() {
 }
 
 ###############################################
-# Run evaluation for a given method.
+# Runs evaluation for a given method.
 ###############################################
 run_evaluation() {
   local method="$1"
@@ -95,19 +95,19 @@ run_evaluation() {
   case "$method" in
     PCA)
       comp_folder="./GeneratedGraphs/PCA"
-      n_jobs=5
+      n_jobs=3
       ;;
     TSNE)
       comp_folder="./GeneratedGraphs/TSNE"
-      n_jobs=25
+      n_jobs=20
       ;;
     "TSNE+PCA")
       comp_folder="./GeneratedGraphs/TSNE_PCA"
-      n_jobs=25
+      n_jobs=20
       ;;
     UMAP)
       comp_folder="./GeneratedGraphs/UMAP"
-      n_jobs=70
+      n_jobs=40
       ;;
     *)
       log_msg "ERROR" "Unknown evaluation method: $method"
@@ -127,7 +127,7 @@ run_evaluation() {
 }
 
 ###############################################
-# Generate critical difference diagram.
+# Generates critical difference diagram.
 ###############################################
 generate_critdd() {
   local dataset_stem="$1"
@@ -142,7 +142,7 @@ generate_critdd() {
 }
 
 ###############################################
-# Generate hyperparameter groups.
+# Generates hyperparameter groups.
 # Outputs 7 lines (one per hyperparameter group).
 ###############################################
 generate_hyperparams() {
@@ -205,7 +205,7 @@ run_pca_cmd() {
   local kpca="$1" whiten="$2"
   local log_file
   log_file=$(get_log_file "$LOG_DIR/${dataset_stem}/PCA" "pca" "$dataset_stem" "$kpca" "$whiten")
-  execute_if_not_done "$log_file" "" \
+  execute_if_not_done "$log_file" "Edges saved successfully" \
     python GraphGeneration/pca_main.py --hyperparameters "$kpca" 2 --whiten "$whiten" --dataset_path "$dataset_path"
 }
 export -f run_pca_cmd
@@ -228,8 +228,8 @@ run_tsne_cmd() {
   fi
   local log_file
   log_file=$(get_log_file "$LOG_DIR/${dataset_stem}/TSNE" "$prefix" "$dataset_stem" "$ktsne" "$ppxty" "$init")
-  execute_if_not_done "$log_file" "" \
-    python GraphEvaluation/tsne_main.py \
+  execute_if_not_done "$log_file" "Edges saved successfully" \
+    python GraphGeneration/tsne_main.py \
       --hyperparameters "$ktsne" "$ppxty" 2 42 \
       --apply_pca "$apply_pca" \
       --initialization "$init" \
@@ -253,7 +253,7 @@ run_umap_cmd() {
   local kumap="$1" umap_neighbors="$2" min_dist="$3" init="$4"
   local log_file
   log_file=$(get_log_file "$LOG_DIR/${dataset_stem}/UMAP" "umap" "$dataset_stem" "$kumap" "$umap_neighbors" "$min_dist" "$init")
-  execute_if_not_done "$log_file" "" \
+  execute_if_not_done "$log_file" "Edges saved successfully" \
     python GraphGeneration/umap_main.py --int_hyperparameters "$kumap" "$umap_neighbors" 2 42 --float_hyperparameters "$min_dist" --initialization "$init" --dataset_path "$dataset_path"
 }
 export -f run_umap_cmd
@@ -263,8 +263,11 @@ run_umap_graphs() {
   mkdir -p "$log_dir"
   local min_dist_values=(0.0 0.25 0.5 0.75 0.99)
   local init_arr=("pca" "spectral")
-  parallel -j "$MAX_PARALLEL_JOBS" run_umap_cmd ::: "${kumap_values[@]}" ::: "${umap_neighbors_values[@]}" ::: "${min_dist_values[@]}" ::: "${init_arr[@]}"
+  # Defines a UMAP-specific parallel job count, since its implementation uses one core only:
+  local MAX_UMAP_JOBS="${MAX_UMAP_JOBS:-80}"
+  parallel -j "$MAX_UMAP_JOBS" run_umap_cmd ::: "${kumap_values[@]}" ::: "${umap_neighbors_values[@]}" ::: "${min_dist_values[@]}" ::: "${init_arr[@]}"
 }
+
 
 export -f run_consistency_cmd run_consistency_graphs \
   run_pca_cmd run_pca_graphs \
@@ -283,7 +286,7 @@ process_dataset() {
   log_msg "INFO" "Starting processing for dataset: $dataset_stem"
   mkdir -p "$LOG_DIR/$dataset_stem"
 
-  # 1. Generate Event Features.
+  # 1. Generates Event Features.
   if ! python DataPreparation/event_features.py \
          --dataset "$dataset_path" \
          --output_dir "$OUTPUT_DIR" \
@@ -292,7 +295,7 @@ process_dataset() {
     return 1
   fi
 
-  # 2. Determine number of rows.
+  # 2. Determines number of rows.
   local num_rows
   num_rows=$(python -c "import pandas as pd; print(len(pd.read_pickle('$dataset_path')))" 2>> "$LOG_DIR/$dataset_stem/num_rows.err")
   if [ -z "$num_rows" ]; then
@@ -300,7 +303,7 @@ process_dataset() {
     return 1
   fi
 
-  # 3. Generate hyperparameter groups.
+  # 3. Generates hyperparameter groups.
   local hypergroups
   mapfile -t hypergroups < <(generate_hyperparams "$num_rows")
   if [ "${#hypergroups[@]}" -ne 7 ]; then
@@ -308,7 +311,7 @@ process_dataset() {
     return 1
   fi
 
-  # Read hyperparameter groups into arrays.
+  # Reads hyperparameter groups into arrays.
   IFS=' ' read -r -a ks_values             <<< "${hypergroups[0]}"
   IFS=' ' read -r -a kg_values             <<< "${hypergroups[1]}"
   IFS=' ' read -r -a kt_values             <<< "${hypergroups[2]}"
@@ -318,7 +321,7 @@ process_dataset() {
   IFS=' ' read -r -a umap_neighbors_values <<< "${hypergroups[6]}"
 
   ###############################################
-  # Run graph generation steps.
+  # Runs graph generation steps.
   ###############################################
   run_consistency_graphs
   run_pca_graphs
@@ -332,9 +335,9 @@ process_dataset() {
   for method in "PCA" "TSNE" "TSNE+PCA" "UMAP"; do
     run_evaluation "$method" "$dataset_path" "$dataset_stem" "$log_eval_base"
   done
-
+  
   ###############################################
-  # Generate critical difference diagram.
+  # Generates critical difference diagram.
   ###############################################
   generate_critdd "$dataset_stem" "$dataset_path"
 
@@ -360,7 +363,7 @@ EOF
   exit 0
 fi
 
-# Load configuration from .env file if available.
+# Loads configuration from .env file if available.
 CONFIG_FILE="${CONFIG_FILE:-./.env}"
 if [ -f "$CONFIG_FILE" ]; then
   set -a
@@ -368,17 +371,17 @@ if [ -f "$CONFIG_FILE" ]; then
   set +a
 fi
 
-# Set configurable paths with defaults.
+# Sets configurable paths with defaults.
 DATASET_DIR="${DATASET_DIR:-DataPreparation/UsageDatasets}"
 OUTPUT_DIR="${OUTPUT_DIR:-DatasetEventFeatures}"
 LOG_DIR="${LOG_DIR:-logs}"
 CRITDD_RESULTS="${CRITDD_RESULTS:-CritddResults}"
-MAX_PARALLEL_JOBS="${MAX_PARALLEL_JOBS:-10}"
+MAX_PARALLEL_JOBS="${MAX_PARALLEL_JOBS:-3}"
 
-# Export them for use in parallel subshells.
+# Exports them for use in parallel subshells.
 export DATASET_DIR OUTPUT_DIR LOG_DIR CRITDD_RESULTS MAX_PARALLEL_JOBS
 
-# Create necessary directories.
+# Creates necessary directories.
 mkdir -p "$LOG_DIR" "$CRITDD_RESULTS"
 
 # Centralized summary log and lock file.
@@ -386,19 +389,19 @@ MAIN_LOG="$LOG_DIR/script_summary.log"
 PREPROC_LOG="$LOG_DIR/pre_processing.log"
 LOCK_FILE="/tmp/script_log.lock"
 
-# Catch errors and log them.
+# Catches errors and log them.
 trap 'log_msg "ERROR" "Error: Command '\''$BASH_COMMAND'\'' failed on line ${LINENO}. Exiting..."; exit 1' ERR
 
-# Check dependencies.
+# Checks dependencies.
 check_dependencies
 
-# Initialize PYTHONPATH safely.
+# Initializes PYTHONPATH safely.
 export PYTHONPATH="$(pwd):${PYTHONPATH:-}"
 
-# Run preprocessing to get the datasets.
+# Runs preprocessing to get the datasets.
 run_preprocessing
 
-# Gather dataset files AFTER preprocessing.
+# Gathers dataset files AFTER preprocessing.
 shopt -s nullglob
 datasets=( "$DATASET_DIR"/*.pkl )
 shopt -u nullglob
