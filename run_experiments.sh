@@ -95,19 +95,19 @@ run_evaluation() {
   case "$method" in
     PCA)
       comp_folder="./GeneratedGraphs/PCA"
-      n_jobs=3
+      n_jobs=25
       ;;
     TSNE)
       comp_folder="./GeneratedGraphs/TSNE"
-      n_jobs=20
+      n_jobs=25
       ;;
     "TSNE+PCA")
       comp_folder="./GeneratedGraphs/TSNE_PCA"
-      n_jobs=20
+      n_jobs=25
       ;;
     UMAP)
       comp_folder="./GeneratedGraphs/UMAP"
-      n_jobs=40
+      n_jobs=25
       ;;
     *)
       log_msg "ERROR" "Unknown evaluation method: $method"
@@ -263,9 +263,9 @@ run_umap_graphs() {
   mkdir -p "$log_dir"
   local min_dist_values=(0.0 0.25 0.5 0.75 0.99)
   local init_arr=("pca" "spectral")
-  # Defines a UMAP-specific parallel job count, since its implementation uses one core only:
-  local MAX_UMAP_JOBS="${MAX_UMAP_JOBS:-80}"
-  parallel -j "$MAX_UMAP_JOBS" run_umap_cmd ::: "${kumap_values[@]}" ::: "${umap_neighbors_values[@]}" ::: "${min_dist_values[@]}" ::: "${init_arr[@]}"
+  # # Defines a UMAP-specific parallel job count, since its implementation uses one core only:
+  # local MAX_UMAP_JOBS="${MAX_UMAP_JOBS:-100}"
+  parallel -j "$MAX_PARALLEL_JOBS" run_umap_cmd ::: "${kumap_values[@]}" ::: "${umap_neighbors_values[@]}" ::: "${min_dist_values[@]}" ::: "${init_arr[@]}"
 }
 
 
@@ -332,9 +332,7 @@ process_dataset() {
   # Evaluation Steps.
   ###############################################
   local log_eval_base="$LOG_DIR/${dataset_stem}"
-  for method in "PCA" "TSNE" "TSNE+PCA" "UMAP"; do
-    run_evaluation "$method" "$dataset_path" "$dataset_stem" "$log_eval_base"
-  done
+  parallel -j 4 run_evaluation {1} "$dataset_path" "$dataset_stem" "$log_eval_base" ::: "PCA" "TSNE" "TSNE+PCA" "UMAP"
   
   ###############################################
   # Generates critical difference diagram.
@@ -376,7 +374,7 @@ DATASET_DIR="${DATASET_DIR:-DataPreparation/UsageDatasets}"
 OUTPUT_DIR="${OUTPUT_DIR:-DatasetEventFeatures}"
 LOG_DIR="${LOG_DIR:-logs}"
 CRITDD_RESULTS="${CRITDD_RESULTS:-CritddResults}"
-MAX_PARALLEL_JOBS="${MAX_PARALLEL_JOBS:-3}"
+MAX_PARALLEL_JOBS="${MAX_PARALLEL_JOBS:-40}"
 
 # Exports them for use in parallel subshells.
 export DATASET_DIR OUTPUT_DIR LOG_DIR CRITDD_RESULTS MAX_PARALLEL_JOBS
