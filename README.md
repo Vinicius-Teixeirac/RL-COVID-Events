@@ -94,7 +94,7 @@ All experimental steps are orchestrated via the `run_experiments.sh` script. To 
 ```bash
 ./run_experiments.sh
 ```
-Before running the experiments, please ensure you have installed all necessary dependencies by reviewing the environment.yml or requirements.txt files.
+Before running the experiments, please ensure you have installed all necessary dependencies by reviewing the environment.yml or requirements.txt files. We highly recommend you to do so.
 
 **Note**: In future versions, run_experiments.sh will be replaced by a main.py script to improve cross-platform compatibility.
 
