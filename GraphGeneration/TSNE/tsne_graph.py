@@ -56,9 +56,9 @@ def get_tsne_graph(representation: np.ndarray,
         raise ValueError(f"dim ({dim}) cannot be greater than the number of features in representation ({representation.shape[1]}).")
     
     # Validate perplexity (must be < number of points)
-    if ppxty >= representation.shape[1]:
+    if ppxty >= representation.shape[0]:
         logging.error("Inconsistent perplexity")
-        raise ValueError(f"Perplexity ({ppxty}) must be smaller than the number of samples ({representation.shape[1]}).")
+        raise ValueError(f"Perplexity ({ppxty}) must be smaller than the number of samples ({representation.shape[0]}).")
 
     # Defines the t-SNE settings 
     tsne = TSNE(n_components=dim, perplexity=ppxty, random_state=rnd_state, metric='euclidean', initialization=initialization, n_jobs=n_jobs) 

@@ -1,6 +1,8 @@
 import logging
+from typing import Union
 
 import numpy as np
+import scipy
 from umap import UMAP
 import networkx as nx
 from sklearn.neighbors import kneighbors_graph
@@ -13,7 +15,8 @@ def get_umap_graph(representation: np.ndarray,
                    min_dist: float,
                    initialization: str,
                    dim: int,
-                   random_state: int) -> nx.DiGraph:
+                   rnd_state: int,
+                   precomputed_knn: Union[np.ndarray, scipy.sparse.spmatrix]) -> nx.DiGraph:
     """
     Generates a k-nearest neighbors graph using UMAP-reduced representation.
 
@@ -55,7 +58,7 @@ def get_umap_graph(representation: np.ndarray,
 
     # Defines the UMAP settings
     umap = UMAP(n_neighbors=n_neighbors, n_components=dim, min_dist=min_dist, metric='euclidean',
-                   random_state=random_state, init=initialization)
+                   random_state=rnd_state, init=initialization, precomputed_knn=precomputed_knn)
     # Fits it to the representation 
     umap.fit(representation)
     # Gets the new transformed space

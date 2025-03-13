@@ -242,10 +242,28 @@ run_tsne_graphs() {
   mkdir -p "$log_dir"
   local ppxty_values=(5 10 20 30 40 50)
   local init_arr=("pca" "spectral")
+  
   # Without PCA.
   parallel -j "$MAX_PARALLEL_JOBS" run_tsne_cmd ::: "${ktsne_values[@]}" ::: "${ppxty_values[@]}" ::: "${init_arr[@]}" ::: 0;
   # With PCA.
   parallel -j "$MAX_PARALLEL_JOBS" run_tsne_cmd ::: "${ktsne_values[@]}" ::: "${ppxty_values[@]}" ::: "${init_arr[@]}" ::: 1;
+}
+
+run_compute_knn() {
+  local dataset_stem="$1"
+  local knn_dir="./precomputed_knn"
+  mkdir -p "$knn_dir"
+  local knn_file="${knn_dir}/${dataset_stem}_knn.pkl"
+  
+  if [ ! -f "$knn_file" ]; then
+    log_msg "INFO" "Computing precomputed k-NN for dataset: $dataset_stem"
+    # Use the last element in umap_neighbors_values as max_neighbors
+    local max_neighbors="${umap_neighbors_values[-1]}"
+    python compute_knn.py --dataset_name "$dataset_stem" --max_neighbors "$max_neighbors" --random_state 42 --output_path "$knn_file"
+  else
+    log_msg "INFO" "Precomputed k-NN already exists: $knn_file"
+  fi
+  echo "$knn_file"
 }
 
 # UMAP Graphs.
@@ -254,8 +272,14 @@ run_umap_cmd() {
   local log_file
   log_file=$(get_log_file "$LOG_DIR/${dataset_stem}/UMAP" "umap" "$dataset_stem" "$kumap" "$umap_neighbors" "$min_dist" "$init")
   execute_if_not_done "$log_file" "Edges saved successfully" \
-    python GraphGeneration/umap_main.py --int_hyperparameters "$kumap" "$umap_neighbors" 2 42 --float_hyperparameters "$min_dist" --initialization "$init" --dataset_path "$dataset_path"
+    python GraphGeneration/umap_main.py \
+      --int_hyperparameters "$kumap" "$umap_neighbors" 2 42 \
+      --float_hyperparameters "$min_dist" \
+      --initialization "$init" \
+      --dataset_path "$dataset_path" \
+      --precomputed_knn_path "$PRECOMPUTED_KNN"
 }
+
 export -f run_umap_cmd
 
 run_umap_graphs() {
@@ -319,6 +343,9 @@ process_dataset() {
   IFS=' ' read -r -a ktsne_values          <<< "${hypergroups[4]}"
   IFS=' ' read -r -a kumap_values          <<< "${hypergroups[5]}"
   IFS=' ' read -r -a umap_neighbors_values <<< "${hypergroups[6]}"
+
+  PRECOMPUTED_KNN=$(run_compute_knn "$dataset_stem")
+  export PRECOMPUTED_KNN
 
   ###############################################
   # Runs graph generation steps.

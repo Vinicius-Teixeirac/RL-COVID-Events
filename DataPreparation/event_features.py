@@ -42,14 +42,20 @@ def get_event_features(dataset_path: str) -> dict[str, np.ndarray]:
     # Temporal features
     dataset['dates'] = pd.to_datetime(dataset['dates'])
     minimal_date = min(dataset['dates'])
-    time_delta = [(d - minimal_date).days for d in dataset['dates']]
-    dataset['date_timediff'] = time_delta
-    temporal = np.array(dataset[['date_timediff']])
+    time_delta = [(d - minimal_date).total_seconds() / 3600 for d in dataset['dates']]
+    temporal = np.array(time_delta, ndmin=2).T
 
-    # Concatenate features
-    combined = np.concatenate((semantic_l2, geospatial, temporal), axis=1)
-    
-    # Scale them to get the final feature set
+    # Concatenate features and scale them to get the final feature set
+    # but first transform lat-long into cartesian coordinates
+    lat_rad = np.deg2rad(dataset['country_lat'])
+    lng_rad = np.deg2rad(dataset['country_lng'])
+    x, y, z = np.cos(lat_rad) * np.cos(lng_rad), np.cos(lat_rad) * np.sin(lng_rad), np.sin(lat_rad)
+    x = np.array(x).reshape(-1, 1)
+    y = np.array(y).reshape(-1, 1)
+    z = np.array(z).reshape(-1, 1)
+
+    combined = np.concatenate((semantic_l2, x, y, z, temporal), axis=1)
+
     scaler = StandardScaler()
     final = scaler.fit_transform(combined)
     

@@ -20,6 +20,9 @@ def get_pca_graph(representation: np.ndarray,
         The input data representation (high-dimensional).
     k : int
         Number of nearest neighbors for the graph.
+    whiten: bool
+        When True, vectors are multiplied by the square root of n_samples and then divided by the singular values to ensure 
+        uncorrelated outputs with unit component-wise variances.
     dim : int
         Desired number of dimensions for PCA reduction.
 
