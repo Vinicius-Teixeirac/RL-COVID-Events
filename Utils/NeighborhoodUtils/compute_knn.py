@@ -6,6 +6,8 @@ from umap.umap_ import nearest_neighbors
 from Utils import load_event_features
 
 
+# vou ter que melhorar muita coisa, especialmente o logging. Colocar TODAS AS INFORMAÇÕES (n_neighbors, random state e output path no logging)
+
 def precompute_knn(dataset_name: str, n_neighbors: int, random_state: int, output_path: str):
     # Load representation (assumes your Utils.load_event_features handles this)
     representation = load_event_features(dataset_name, 'final')
@@ -14,6 +16,8 @@ def precompute_knn(dataset_name: str, n_neighbors: int, random_state: int, outpu
         representation,
         n_neighbors=n_neighbors,
         metric="euclidean",
+        metric_kwds=None,
+        angular=False,
         random_state=random_state
     )
     # Save precomputed k-NN graph
@@ -30,7 +34,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     dataset_name = args.dataset_name
-    max_neighbors = args.max_neighbors
+    max_neighbors = args.max_neighbors + 1
     random_state = args.random_state
     output_path = args.output_path
     precompute_knn(dataset_name, max_neighbors, random_state, output_path)

@@ -3,7 +3,6 @@ import logging
 import numpy as np
 import networkx as nx
 from sklearn.manifold import SpectralEmbedding
-
 from sklearn.neighbors import kneighbors_graph
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")

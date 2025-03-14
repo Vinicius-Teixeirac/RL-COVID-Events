@@ -16,7 +16,7 @@ def get_umap_graph(representation: np.ndarray,
                    initialization: str,
                    dim: int,
                    rnd_state: int,
-                   precomputed_knn: Union[np.ndarray, scipy.sparse.spmatrix]) -> nx.DiGraph:
+                   precomputed_knn: Union[np.ndarray, scipy.sparse.spmatrix] = None) -> nx.DiGraph:
     """
     Generates a k-nearest neighbors graph using UMAP-reduced representation.
 
@@ -56,9 +56,12 @@ def get_umap_graph(representation: np.ndarray,
         logging.error("Inconsistent dimension")
         raise ValueError(f"dim ({dim}) cannot be greater than the number of features in representation ({representation.shape[1]}).")
 
-    # Defines the UMAP settings
-    umap = UMAP(n_neighbors=n_neighbors, n_components=dim, min_dist=min_dist, metric='euclidean',
-                   random_state=rnd_state, init=initialization, precomputed_knn=precomputed_knn)
+    if precomputed_knn is not None:
+        umap = UMAP(n_neighbors=n_neighbors, n_components=dim, min_dist=min_dist, metric='euclidean',
+                    random_state=rnd_state, init=initialization, precomputed_knn=precomputed_knn)
+    else: 
+        umap = UMAP(n_neighbors=n_neighbors, n_components=dim, min_dist=min_dist, metric='euclidean',
+                    random_state=rnd_state, init=initialization)
     # Fits it to the representation 
     umap.fit(representation)
     # Gets the new transformed space

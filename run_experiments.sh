@@ -206,7 +206,7 @@ run_pca_cmd() {
   local log_file
   log_file=$(get_log_file "$LOG_DIR/${dataset_stem}/PCA" "pca" "$dataset_stem" "$kpca" "$whiten")
   execute_if_not_done "$log_file" "Edges saved successfully" \
-    python GraphGeneration/pca_main.py --hyperparameters "$kpca" 2 --whiten "$whiten" --dataset_path "$dataset_path"
+    python GraphGeneration/PCA/pca_main.py --hyperparameters "$kpca" 2 --whiten "$whiten" --dataset_path "$dataset_path"
 }
 export -f run_pca_cmd
 
@@ -229,7 +229,7 @@ run_tsne_cmd() {
   local log_file
   log_file=$(get_log_file "$LOG_DIR/${dataset_stem}/TSNE" "$prefix" "$dataset_stem" "$ktsne" "$ppxty" "$init")
   execute_if_not_done "$log_file" "Edges saved successfully" \
-    python GraphGeneration/tsne_main.py \
+    python GraphGeneration/TSNE/tsne_main.py \
       --hyperparameters "$ktsne" "$ppxty" 2 42 \
       --apply_pca "$apply_pca" \
       --initialization "$init" \
@@ -249,36 +249,21 @@ run_tsne_graphs() {
   parallel -j "$MAX_PARALLEL_JOBS" run_tsne_cmd ::: "${ktsne_values[@]}" ::: "${ppxty_values[@]}" ::: "${init_arr[@]}" ::: 1;
 }
 
-run_compute_knn() {
-  local dataset_stem="$1"
-  local knn_dir="./precomputed_knn"
-  mkdir -p "$knn_dir"
-  local knn_file="${knn_dir}/${dataset_stem}_knn.pkl"
-  
-  if [ ! -f "$knn_file" ]; then
-    log_msg "INFO" "Computing precomputed k-NN for dataset: $dataset_stem"
-    # Use the last element in umap_neighbors_values as max_neighbors
-    local max_neighbors="${umap_neighbors_values[-1]}"
-    python compute_knn.py --dataset_name "$dataset_stem" --max_neighbors "$max_neighbors" --random_state 42 --output_path "$knn_file"
-  else
-    log_msg "INFO" "Precomputed k-NN already exists: $knn_file"
-  fi
-  echo "$knn_file"
-}
-
 # UMAP Graphs.
 run_umap_cmd() {
-  local kumap="$1" umap_neighbors="$2" min_dist="$3" init="$4"
+  local kumap="$1" umap_neighbors="$2" min_dist="$3" init="$4" preknn="$5"
   local log_file
   log_file=$(get_log_file "$LOG_DIR/${dataset_stem}/UMAP" "umap" "$dataset_stem" "$kumap" "$umap_neighbors" "$min_dist" "$init")
   execute_if_not_done "$log_file" "Edges saved successfully" \
-    python GraphGeneration/umap_main.py \
+    python GraphGeneration/UMAP/umap_main.py \
       --int_hyperparameters "$kumap" "$umap_neighbors" 2 42 \
       --float_hyperparameters "$min_dist" \
       --initialization "$init" \
       --dataset_path "$dataset_path" \
-      --precomputed_knn_path "$PRECOMPUTED_KNN"
+      --precomputed_knn_path "$preknn"
 }
+export -f run_umap_cmd
+
 
 export -f run_umap_cmd
 
@@ -289,14 +274,44 @@ run_umap_graphs() {
   local init_arr=("pca" "spectral")
   # # Defines a UMAP-specific parallel job count, since its implementation uses one core only:
   # local MAX_UMAP_JOBS="${MAX_UMAP_JOBS:-100}"
-  parallel -j "$MAX_PARALLEL_JOBS" run_umap_cmd ::: "${kumap_values[@]}" ::: "${umap_neighbors_values[@]}" ::: "${min_dist_values[@]}" ::: "${init_arr[@]}"
+  parallel -j "$MAX_PARALLEL_JOBS" run_umap_cmd ::: "${kumap_values[@]}" ::: "${umap_neighbors_values[@]}" ::: "${min_dist_values[@]}" ::: "${init_arr[@]}" ::: "$PRECOMPUTED_KNN"
 }
-
 
 export -f run_consistency_cmd run_consistency_graphs \
   run_pca_cmd run_pca_graphs \
   run_tsne_cmd run_tsne_graphs \
   run_umap_cmd run_umap_graphs 
+
+run_compute_knn() {
+  local dataset_stem="$1"
+  local max_neighbors="$2"
+  local knn_dir="PrecomputedKNNs"
+  mkdir -p "$knn_dir"
+  local knn_file="${knn_dir}/${dataset_stem}_knn.pkl"
+  
+  # Define a dedicated log file for k-NN computing.
+  local knn_log="$LOG_DIR/${dataset_stem}/knn_${dataset_stem}_${max_neighbors}.log"
+  mkdir -p "$LOG_DIR/${dataset_stem}"
+
+  if [ ! -f "$knn_file" ]; then
+    log_msg "INFO" "Computing precomputed k-NN for dataset: $dataset_stem with max_neighbors=$max_neighbors. Log: $knn_log"
+    if ! python Utils/NeighborhoodUtils/compute_knn.py \
+           --dataset_name "$dataset_stem" \
+           --max_neighbors "$max_neighbors" \
+           --random_state 42 \
+           --output_path "$knn_file" \
+           > "$knn_log" 2>&1; then
+      log_msg "ERROR" "k-NN computation failed for dataset: $dataset_stem. Check log: $knn_log"
+      return 1
+    fi
+    log_msg "INFO" "k-NN computed successfully for dataset: $dataset_stem"
+  else
+    log_msg "INFO" "Precomputed k-NN already exists: $knn_file"
+  fi
+  echo "$knn_file"
+}
+
+export -f run_compute_knn 
 
 ###############################################
 # Process a single dataset.
@@ -344,8 +359,13 @@ process_dataset() {
   IFS=' ' read -r -a kumap_values          <<< "${hypergroups[5]}"
   IFS=' ' read -r -a umap_neighbors_values <<< "${hypergroups[6]}"
 
-  PRECOMPUTED_KNN=$(run_compute_knn "$dataset_stem")
+  # Compute max_neighbors from the last element of the array
+  local last_index=$((${#umap_neighbors_values[@]} - 1))
+  local max_neighbors="${umap_neighbors_values[$last_index]}"
+
+  PRECOMPUTED_KNN=$(run_compute_knn "$dataset_stem" "$max_neighbors")
   export PRECOMPUTED_KNN
+
 
   ###############################################
   # Runs graph generation steps.
@@ -401,7 +421,7 @@ DATASET_DIR="${DATASET_DIR:-DataPreparation/UsageDatasets}"
 OUTPUT_DIR="${OUTPUT_DIR:-DatasetEventFeatures}"
 LOG_DIR="${LOG_DIR:-logs}"
 CRITDD_RESULTS="${CRITDD_RESULTS:-CritddResults}"
-MAX_PARALLEL_JOBS="${MAX_PARALLEL_JOBS:-40}"
+MAX_PARALLEL_JOBS="${MAX_PARALLEL_JOBS:-38}"
 
 # Exports them for use in parallel subshells.
 export DATASET_DIR OUTPUT_DIR LOG_DIR CRITDD_RESULTS MAX_PARALLEL_JOBS
