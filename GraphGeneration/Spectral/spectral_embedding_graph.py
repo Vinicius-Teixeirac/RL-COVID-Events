@@ -7,23 +7,23 @@ from sklearn.neighbors import kneighbors_graph
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
-def get_spectral_graph(representation: np.ndarray,
-                  k: int,
+def get_spectral_graph(events: np.ndarray,
+                  k_spectral: int,
                   n_neighbors: int,
-                  dim: int,
-                  rnd_state: int) -> nx.DiGraph:
+                  n_components: int,
+                  random_state: int) -> nx.DiGraph:
     """
     Generates a k-nearest neighbors graph using Laplacian Eigenmaps-reduced representation.
 
     Parameters
     ----------
-    representation : np.ndarray
+    events : np.ndarray
         The input data representation (high-dimensional).
-    k : int
+    k_spectral : int
         Number of nearest neighbors for the graph.
     n_neighbors : int
         Number of neighbors to consider for each point.
-    dim : int
+    n_components : int
         Desired number of dimensions for Laplacian Eigenmaps reduction.
     random_state : int
         Seed for reproducibility (since Laplacian Eigenmaps is stochastic).
@@ -36,28 +36,31 @@ def get_spectral_graph(representation: np.ndarray,
     Raises
     ------
     ValueError
-        If `k` or `dim` are not positive integers, or if `dim` is greater than the number of features in `representation`.
+        If `k_spectral` or `n_components` are not positive integers, or if `n_components` is greater than the number of features in input data.
     """
 
     # Validates inputs
-    if k <= 0 or dim <= 0:
+    if k_spectral <= 0 or n_components <= 0:
         logging.error("Non positive value for k or dimension")
-        raise ValueError("Both k-value and dimension must be positive integers.")
+        raise ValueError("Both k_spectral and n_components must be positive integers.")
 
-    if dim > representation.shape[1]:
+    if n_components > events.shape[1]:
         logging.error("Inconsistent dimension")
-        raise ValueError(f"dim ({dim}) cannot be greater than the number of features in representation ({representation.shape[1]}).")
+        raise ValueError(f"n_components ({n_components}) cannot be greater than the number of features in representation ({events.shape[1]}).")
     
-    spectral_embedding = SpectralEmbedding(n_components=dim, n_neighbors=n_neighbors, random_state=rnd_state)
+    # Defines the Laplacian Eigenmaps settings
+    spectral = SpectralEmbedding(n_neighbors=n_neighbors, n_components=n_components, random_state=random_state)
 
-    spectral_embedding.fit(representation)
+    #Fits it to the data
+    spectral.fit(events)
 
-    representation_spectral_embedding = spectral_embedding.transform(representation)
+    # Transforms the data to get Laplacian Eigenmap-reducted representation
+    representation_spectral = spectral.transform(events)
 
     # Constructs k-nearest neighbors graph (returns a sparse matrix)
-    adj_matrix_spectral_embedding = kneighbors_graph(representation_spectral_embedding, k, mode='connectivity')
+    adj_matrix_spectral = kneighbors_graph(representation_spectral, k_spectral, mode='connectivity')
     # Converts adjacency matrix to a directed NetworkX graph
-    spectral_embedding_graph = nx.from_scipy_sparse_array(adj_matrix_spectral_embedding, create_using=nx.DiGraph)
+    spectral_graph = nx.from_scipy_sparse_array(adj_matrix_spectral, create_using=nx.DiGraph)
 
-    return spectral_embedding_graph
+    return spectral_graph
 

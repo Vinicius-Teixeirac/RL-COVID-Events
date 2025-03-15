@@ -12,13 +12,13 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description ='Generate the reference graphs')
     parser.add_argument('--hyperparameters',  type=int, nargs=3, 
 						help='Number of neighbors for semantic, geographical and temporal neighbors graph: k_s, k_g, k_t')
-    parser.add_argument('--dataset_path', type=str, help='The path for the current dataset file')
+    parser.add_argument('--dataset_name', type=str, required=True,
+                        help='The name of the current dataset')
     parser.add_argument("--output_dir", type=str, default="./GeneratedGraphs/Consistency", help="Directory to save the output.")
     args = parser.parse_args()
 
     # Getting the dataset specifications
-    dataset_path = args.dataset_path
-    dataset_name = Path(dataset_path).stem
+    dataset_name = args.dataset_name
     output_dir = args.output_dir
 
     # Acquiring from arguments hyperparameters

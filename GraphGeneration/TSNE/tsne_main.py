@@ -2,47 +2,64 @@ import logging
 import argparse
 from pathlib import Path
 
-from GraphGeneration import get_pca_reduction, get_tsne_graph
+from GraphGeneration import get_tsne_graph
 from Utils import load_event_features, save_edges
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
+def argument_parsing():
+    """Parse command-line arguments."""
+    parser = argparse.ArgumentParser(description='Generate the t-SNE graphs')
+    
+    parser.add_argument('--k_tsne', type=int, required=True,
+                        help='Number of neighbors in the t-SNE-reducted k-NN graph')
+    parser.add_argument('--perplexity', type=int, required=True,
+                        help='t-SNE perplexity hyperparameter')
+    parser.add_argument("--initialization", type=str, choices=['pca', 'spectral'], required=True,
+                        help="The initial point positions for embedding")
+    parser.add_argument("--metric", type=str, choices=['euclidean', 'cosine'], required=True,
+                        help="The input space metric to calculate neares neighbors")
+    parser.add_argument("--apply_pca", type=int, choices=[0, 1], required=True,
+                        help="Whether to apply PCA reduction before t-SNE (0 or 1)")
+    parser.add_argument('--n_components', type=int, default=2,
+                        help='Number of components for t-SNE dimensionality reduction (default: 2)')
+    parser.add_argument('--random_state', type=int, default=42,
+                        help='Random seed for reproducibility (default: 42)')
+    parser.add_argument('--dataset_name', type=str, required=True,
+                        help='The name of the current dataset')
+    parser.add_argument("--output_dir", type=str, default="./GeneratedGraphs/TSNE",
+                        help="Directory to save the output generated graph.")
+    
+    return parser.parse_args()
+
 
 if __name__ == "__main__":
-    # Parsing arguments
-    parser = argparse.ArgumentParser(description="Generate the t-SNE graphs")
-    parser.add_argument('--hyperparameters',  type=int, nargs=4, help='''Four intergers arguments: 
-                        Number of neighbors in t-SNE graph, perplexity, desired dimensionality, and random state''')
-    parser.add_argument("--apply_pca", type=int, choices=[0, 1], help="Whether to apply PCA reduction before t-SNE (0 or 1)")
-    parser.add_argument("--initialization", type=str, help="The initial point positions for embedding")
-    parser.add_argument("--dataset_path", type=str, help="Path to dataset")
-    parser.add_argument("--output_dir", type=str, default="./GeneratedGraphs/TSNE", help="Directory to save output")
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
-    args = parser.parse_args()
+    # Parsing arguments
+    args = argument_parsing()
 
     # Getting dataset details
-    dataset_path = args.dataset_path
-    dataset_name = Path(dataset_path).stem
-    output_dir = Path(args.output_dir)
-
-    # acquiring from arguments the method's hyperparameters
-    k_tsne, ppxty, dim, rnd_state = args.hyperparameters
-    init = args.initialization
-    apply_pca = bool(args.apply_pca)
+    dataset_name = args.dataset_name
+    output_dir = args.output_dir
 
     # Loading representation
-    representation = load_event_features(dataset_name, "final")
+    final_representation = load_event_features(dataset_name, "final")
+    tsne_graph = get_tsne_graph(
+        events = final_representation,
+        k_tsne = args.k_tsne,
+        perplexity = args.perplexity,
+        initialization = args.initialization,
+        metric = args.metric,
+        apply_pca = bool(args.apply_pca),
+        n_components = args.n_components,
+        random_state = args.random_state
+    )
 
-    # Applying PCA if needed
-    if apply_pca:
-        representation = get_pca_reduction(representation)
+    if args.apply_pca:
         output_subdir = Path(str(output_dir) + "_PCA")
-        output_file = output_subdir / dataset_name / f"tsne_pca_edges_{k_tsne}_{ppxty}_{init}.pkl"
+        output_file = output_subdir / dataset_name / f"tsne_pca_edges_{args.k_tsne}_{args.perplexity}_{args.initialization}_{args.metric}.pkl"
     else:
         output_subdir = output_dir
-        output_file = output_subdir / dataset_name / f"tsne_edges_{k_tsne}_{ppxty}_{init}.pkl"
-
-    # Generating t-SNE graph
-    tsne_graph = get_tsne_graph(representation, k_tsne, ppxty, init, dim, rnd_state)
-
-    # Defining filename and save graph
+        output_file = output_subdir / dataset_name / f"tsne_edges_{args.k_tsne}_{args.perplexity}_{args.initialization}_{args.metric}.pkl"
+    
+    # save graph
     save_edges(tsne_graph, output_file)

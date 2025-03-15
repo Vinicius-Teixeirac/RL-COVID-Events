@@ -9,13 +9,14 @@ from sklearn.neighbors import kneighbors_graph
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
-def get_umap_graph(representation: np.ndarray,
-                   k: int,
+def get_umap_graph(events: np.ndarray,
+                   k_umap: int,
                    n_neighbors: int,
                    min_dist: float,
                    initialization: str,
-                   dim: int,
-                   rnd_state: int,
+                   metric : str,
+                   n_components: int,
+                   random_state: int,
                    precomputed_knn: Union[np.ndarray, scipy.sparse.spmatrix] = None) -> nx.DiGraph:
     """
     Generates a k-nearest neighbors graph using UMAP-reduced representation.
@@ -48,27 +49,29 @@ def get_umap_graph(representation: np.ndarray,
         If `k`, `n_neighbors` `dim` are not positive integers, or if `dim` is greater than the number of features in `representation`.
     """
     # Validates inputs
-    if k <= 0 or n_neighbors<=1 or dim <= 0:
+    if k_umap <= 0 or n_neighbors<=1 or n_components <= 0:
         logging.error("Non positive value for k or dimension")
         raise ValueError("k-value, n_neighbors and dimension must be positive integers.")
 
-    if dim > representation.shape[1]:
+    if n_components > events.shape[1]:
         logging.error("Inconsistent dimension")
-        raise ValueError(f"dim ({dim}) cannot be greater than the number of features in representation ({representation.shape[1]}).")
+        raise ValueError(f"n_components ({n_components}) cannot be greater than the number of features in representation ({events.shape[1]}).")
 
     if precomputed_knn is not None:
-        umap = UMAP(n_neighbors=n_neighbors, n_components=dim, min_dist=min_dist, metric='euclidean',
-                    random_state=rnd_state, init=initialization, precomputed_knn=precomputed_knn)
+        umap = UMAP(n_neighbors=n_neighbors, min_dist=min_dist, init=initialization, metric=metric, n_components = n_components,
+                    random_state=random_state, precomputed_knn=precomputed_knn)
     else: 
-        umap = UMAP(n_neighbors=n_neighbors, n_components=dim, min_dist=min_dist, metric='euclidean',
-                    random_state=rnd_state, init=initialization)
+        umap = UMAP(n_neighbors=n_neighbors, min_dist=min_dist, init=initialization, metric=metric, n_components = n_components,
+                    random_state=random_state)
+        
     # Fits it to the representation 
-    umap.fit(representation)
+    umap.fit(events)
+
     # Gets the new transformed space
-    representation_UMAP = umap.transform(representation)
+    representation_UMAP = umap.transform(events)
     
     # Constructs k-nearest neighbors graph (returns a sparse matrix)
-    adj_matrix_umap = kneighbors_graph(representation_UMAP, k, mode='connectivity')
+    adj_matrix_umap = kneighbors_graph(representation_UMAP, k_umap, mode='connectivity')
     # Converts adjacency matrix to a directed NetworkX graph
     umap_graph =  nx.from_scipy_sparse_array(adj_matrix_umap, create_using=nx.DiGraph)
 

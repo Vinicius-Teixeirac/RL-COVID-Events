@@ -8,26 +8,26 @@ from sklearn.neighbors import kneighbors_graph
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
-def get_ica_graph(representation: np.ndarray,
-                  k: int,
+def get_ica_graph(events: np.ndarray,
+                  k_ica: int,
                   whiten:Union[str, bool],
-                  functional: str,
-                  dim: int,
-                  rnd_state: int) -> nx.DiGraph:
+                  fun: str,
+                  n_components: int,
+                  random_state: int) -> nx.DiGraph:
     """
     Generates a k-nearest neighbors graph using ICA-reduced representation.
 
     Parameters
     ----------
-    representation : np.ndarray
-        The input data representation (high-dimensional).
-    k : int
-        Number of nearest neighbors for the graph.
+    events : np.ndarray
+        The input data events (high-dimensional).
+    k_ica : int
+        Number of nearest neighbors for the ICA-reduced graph.
     whiten : str or bool
         Whether to apply whitening in the ICA transformation.
-    functional: str
+    fun: str
         The functional form of the G function used in the approximation to neg-entropy. Could be either ‘logcosh’, ‘exp’, or ‘cube’. 
-    dim : int
+    n_components : int
         Desired number of dimensions for ICA reduction.
     random_state :
         Seed for reproducibility (since ICA is stochastic).     
@@ -40,28 +40,28 @@ def get_ica_graph(representation: np.ndarray,
     Raises
     ------
     ValueError
-        If `k` or `dim` are not positive integers, or if `dim` is greater than the number of features in `representation`.
+        If `k` or `n_components` are not positive integers, or if `n_components` is greater than the number of features in input data.
     """
     # Validate inputs
-    if k <= 0 or dim <= 0:
+    if k_ica <= 0 or n_components <= 0:
         logging.error("Non positive value for k or dimension")
-        raise ValueError("Both k-value and dimension must be positive integers.")
+        raise ValueError("Both k_ica and n_components must be positive integers.")
 
-    if dim > representation.shape[1]:
+    if n_components > events.shape[1]:
         logging.error("Inconsistent dimension")
-        raise ValueError(f"dim ({dim}) cannot be greater than the number of features in representation ({representation.shape[1]}).")
+        raise ValueError(f"n_components ({n_components}) cannot be greater than the number of features in input data ({events.shape[1]}).")
 
     # Defines the ICA settings
-    ica = FastICA(n_components=dim, whiten=whiten, fun=functional, random_state=rnd_state)
+    ica = FastICA(whiten=whiten, fun=fun, n_components=n_components, random_state=random_state)
     
-    # Fits it to representation
-    ica.fit(representation)
+    # Fits it to data
+    ica.fit(events)
 
-    # Transforms the data
-    representation_ica = ica.transform(representation)
+    # Transforms the data to get ICA-reducted representation
+    representation_ica = ica.transform(events)
 
     # Constructs k-nearest neighbors graph (returns a sparse matrix)
-    adj_matrix_ica = kneighbors_graph(representation_ica, k, mode='connectivity')
+    adj_matrix_ica = kneighbors_graph(representation_ica, k_ica, mode='connectivity')
     # Converts adjacency matrix to a directed NetworkX graph
     ica_graph = nx.from_scipy_sparse_array(adj_matrix_ica, create_using=nx.DiGraph)
 
