@@ -37,12 +37,8 @@ if __name__ == "__main__":
     # Parsing arguments
     args = argument_parsing()
 
-    # Getting dataset details
-    dataset_name = args.dataset_name
-    output_dir = args.output_dir
-
     # Loading representation
-    final_representation = load_event_features(dataset_name, "final")
+    final_representation = load_event_features(args.dataset_name, "final")
     tsne_graph = get_tsne_graph(
         events = final_representation,
         k_tsne = args.k_tsne,
@@ -55,11 +51,11 @@ if __name__ == "__main__":
     )
 
     if args.apply_pca:
-        output_subdir = Path(str(output_dir) + "_PCA")
-        output_file = output_subdir / dataset_name / f"tsne_pca_edges_{args.k_tsne}_{args.perplexity}_{args.initialization}_{args.metric}.pkl"
+        output_subdir = Path(args.output_dir + "_PCA")
+        output_file = output_subdir / args.dataset_name / f"tsne_pca_edges_{args.k_tsne}_{args.perplexity}_{args.initialization}_{args.metric}.pkl"
     else:
-        output_subdir = output_dir
-        output_file = output_subdir / dataset_name / f"tsne_edges_{args.k_tsne}_{args.perplexity}_{args.initialization}_{args.metric}.pkl"
+        output_subdir = Path(args.output_dir)
+        output_file = output_subdir / args.dataset_name / f"tsne_edges_{args.k_tsne}_{args.perplexity}_{args.initialization}_{args.metric}.pkl"
     
     # save graph
     save_edges(tsne_graph, output_file)

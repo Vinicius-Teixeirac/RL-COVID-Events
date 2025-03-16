@@ -72,7 +72,7 @@ def get_event_features(dataset_path: str) -> dict[str, np.ndarray]:
 if __name__ == "__main__":
     # Parsing the arguments used for feature extraction
     parser = argparse.ArgumentParser(description="Generates scaled event features from a dataset.")
-    parser.add_argument("--dataset_path", type=str, help="Path to the dataset (Pickle file).")
+    parser.add_argument("--dataset_path", type=str, required=True, help="Path to the dataset (Pickle file).")
     parser.add_argument("--output_dir", type=str, default="./DatasetEventFeatures", help="Directory to save the output.")
     args = parser.parse_args()
     

@@ -26,40 +26,59 @@ process_dataset() {
     return 1
   fi
 
-  # 3. Generate hyperparameter groups.
-  local hypergroups
-  mapfile -t hypergroups < <(generate_hyperparams "$num_rows")
-  if [ "${#hypergroups[@]}" -ne 7 ]; then
-    log_msg "ERROR" "Hyperparameter generation failed for dataset: $dataset_stem"
-    return 1
-  fi
+  # 3. Generate hyperparameter values.
+  local k_values
+  IFS=' ' read -r -a k_values <<< "$(generate_hyperparams "$num_rows")"
 
-  IFS=' ' read -r -a ks_values             <<< "${hypergroups[0]}"
-  IFS=' ' read -r -a kg_values             <<< "${hypergroups[1]}"
-  IFS=' ' read -r -a kt_values             <<< "${hypergroups[2]}"
-  IFS=' ' read -r -a kpca_values           <<< "${hypergroups[3]}"
-  IFS=' ' read -r -a ktsne_values          <<< "${hypergroups[4]}"
-  IFS=' ' read -r -a kumap_values          <<< "${hypergroups[5]}"
-  IFS=' ' read -r -a umap_neighbors_values <<< "${hypergroups[6]}"
+  # Use the same k values for all methods.
+  ks_values=("${k_values[@]}")
+  kg_values=("${k_values[@]}")
+  kt_values=("${k_values[@]}")
+  kica_values=("${k_values[@]}")
+  kisomap_values=("${k_values[@]}")
+  klle_values=("${k_values[@]}")
+  kpca_values=("${k_values[@]}")
+  krp_values=("${k_values[@]}")
+  kspectral_values=("${k_values[@]}")
+  ktsne_values=("${k_values[@]}")
+  kumap_values=("${k_values[@]}")
 
-  local last_index=$((${#umap_neighbors_values[@]} - 1))
-  local max_neighbors="${umap_neighbors_values[$last_index]}"
+  export ks_values kg_values kt_values kica_values kisomap_values klle_values kpca_values krp_values kspectral_values ktsne_values kumap_values
 
-  PRECOMPUTED_KNN=$(run_compute_knn "$dataset_stem" "$max_neighbors")
-  export PRECOMPUTED_KNN
+  n_neighbors=()
+  for k in "${k_values[@]}"; do
+    n_neighbors+=("$(( k + 5 ))")
+  done
+
+  local last_index=$((${#n_neighbors[@]} - 1))
+  local max_neighbors="${n_neighbors[$last_index]}"
+
+  export n_neighbors 
+
+  PRECOMPUTED_KNN_EUCLIDEAN= $(run_compute_knn "$dataset_stem" "$max_neighbors" "euclidean")
+  PRECOMPUTED_KNN_COSINE= $(run_compute_knn "$dataset_stem" "$max_neighbors" "cosine")
+  export PRECOMPUTED_KNN_EUCLIDEAN, PRECOMPUTED_KNN_COSINE
 
   # Run graph generation steps.
   run_consistency_graphs
+  run_ica_graphs
+  run_isomap_graphs   
+  run_lle_graphs      
   run_pca_graphs
+  run_rp_graphs        
+  run_spectral_graphs 
   run_tsne_graphs
   run_umap_graphs
 
   # Run evaluations.
   local log_eval_base="$LOG_DIR/${dataset_stem}"
-  parallel -j 4 run_evaluation {1} "$dataset_path" "$dataset_stem" "$log_eval_base" ::: "PCA" "TSNE" "TSNE+PCA" "UMAP"
+  parallel -j 4 run_evaluation {1} "$dataset_path" "$dataset_stem" "$log_eval_base" \
+    ::: "PCA" "TSNE" "TSNE+PCA" "UMAP" "ICA" "Isomap" "LLE" "RandomProjection" "Spectral"
   
   # Generate critical difference diagram.
   generate_critdd "$dataset_stem" "$dataset_path"
 
   log_msg "INFO" "Finished processing dataset: $dataset_stem"
 }
+
+export -f process_dataset

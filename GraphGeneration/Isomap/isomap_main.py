@@ -28,18 +28,14 @@ if __name__ == "__main__":
     # Parsing the arguments that'll be used on the Isomap method
     args = argument_parsing()
 
-    # Getting the dataset specifications
-    dataset_name = args.dataset_name
-    output_dir = args.output_dir
-
     # Loading the representation and obtaining the isomap graph from it
-    final_representation = load_event_features(dataset_name, 'final')
+    final_representation = load_event_features(args.dataset_name, 'final')
     isomap_graph = get_isomap_graph(
         events = final_representation, 
         k_isomap = args.k_isomap, 
         n_neighbors = args.n_neighbors,
         n_components = args.n_components)
 
-    output_file = Path(output_dir) / dataset_name / f"isomap_edges_{args.k_isomap}_{args.n_neighbors}.pkl"
+    output_file = Path(args.output_dir) / args.dataset_name / f"isomap_edges_{args.k_isomap}_{args.n_neighbors}.pkl"
     save_edges(isomap_graph, output_file)
 

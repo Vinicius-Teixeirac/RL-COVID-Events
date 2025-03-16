@@ -13,3 +13,5 @@ run_preprocessing() {
       log_msg "INFO" "Preprocessing completed successfully."
   fi
 }
+
+export -f run_preprocessing

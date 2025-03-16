@@ -51,6 +51,7 @@ if __name__ == "__main__":
         n_neighbors = args.n_neighbors,
         min_dist = args.min_dist,
         initialization = args.initialization,
+        metric = args.metric,
         n_components = args.n_components,
         random_state = args.random_state,
         precomputed_knn = precomputed_knn)

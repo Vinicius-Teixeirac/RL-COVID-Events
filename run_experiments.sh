@@ -28,6 +28,7 @@ mkdir -p "$LOG_DIR" "$CRITDD_RESULTS"
 # Source our modular functions.
 source "./Lib/logging.sh"
 source "./Lib/dependencies.sh"
+source "./Lib/checking.sh"
 source "./Lib/preprocessing.sh"
 source "./Lib/hyperparams.sh"
 source "./Lib/graph_generation.sh"

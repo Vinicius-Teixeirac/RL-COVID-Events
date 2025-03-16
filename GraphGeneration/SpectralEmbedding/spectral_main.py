@@ -30,12 +30,8 @@ if __name__ == "__main__":
     # Parsing the arguments that'll be used on the Laplacian Eigenmaps method
     args = argument_parsing()
 
-    # Getting the dataset specifications
-    dataset_name = args.dataset_name
-    output_dir = args.output_dir
-
     # Loading the representation and obtaining the spectral graph from it
-    final_representation = load_event_features(dataset_name, 'final')
+    final_representation = load_event_features(args.dataset_name, 'final')
     spectral_graph = get_spectral_graph(
         events = final_representation,
         k_spectral = args.k_spectral,
@@ -43,6 +39,6 @@ if __name__ == "__main__":
         n_components = args.n_components, 
         random_state = args.random_state)
 
-    output_file = Path(output_dir) / dataset_name / f"spectral_edges_{args.k_spectral}_{args.n_neighbors}.pkl"
+    output_file = Path(args.output_dir) / args.dataset_name / f"spectral_edges_{args.k_spectral}_{args.n_neighbors}.pkl"
     save_edges(spectral_graph, output_file)
 

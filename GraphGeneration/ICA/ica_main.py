@@ -32,15 +32,11 @@ if __name__ == "__main__":
     # Parsing the arguments that'll be used on the ICA method
     args = argument_parsing()
 
-    # Getting the dataset specifications
-    dataset_name = args.dataset_name
-    output_dir = args.output_dir
-
     # Acquiring from arguments the method's hyperparameters
     whiten = False if args.whiten == '0' else args.whiten
     
     # Loading the features and obtaining the ICA graph from it
-    final_features = load_event_features(dataset_name, 'final')
+    final_features = load_event_features(args.dataset_name, 'final')
     ica_graph = get_ica_graph(
         events = final_features,
         k_ica = args.k_ica,
@@ -49,5 +45,5 @@ if __name__ == "__main__":
         n_components = args.n_components,
         random_state = args.random_state)
 
-    output_file = Path(output_dir) / dataset_name / f"ica_edges_{args.k_ica}_{whiten}_{args.fun}.pkl"
+    output_file = Path(args.output_dir) / args.dataset_name / f"ica_edges_{args.k_ica}_{whiten}_{args.fun}.pkl"
     save_edges(ica_graph, output_file)

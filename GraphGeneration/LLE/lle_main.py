@@ -32,12 +32,8 @@ if __name__ == "__main__":
     # Parsing the arguments that'll be used on the LLE method
     args = argument_parsing()
 
-    # Getting the dataset specifications
-    dataset_name = args.dataset_name
-    output_dir = args.output_dir
-
     # Loading the representation and obtaining the lle graph from it
-    final_representation = load_event_features(dataset_name, 'final')
+    final_representation = load_event_features(args.dataset_name, 'final')
     lle_graph = get_lle_graph(
         events = final_representation, 
         k_lle = args.k_lle,
@@ -46,6 +42,6 @@ if __name__ == "__main__":
         n_components = args.n_components,
         random_state = args.random_state)
 
-    output_file = Path(output_dir) / dataset_name / f"lle_edges_{args.k_lle}_{args.n_neighbors}_{args.method}.pkl"
+    output_file = Path(args.output_dir) / args.dataset_name / f"lle_edges_{args.k_lle}_{args.n_neighbors}_{args.method}.pkl"
     save_edges(lle_graph, output_file)
 

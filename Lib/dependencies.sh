@@ -12,3 +12,5 @@ check_dependencies() {
     exit 1
   fi
 }
+
+export -f check_dependencies

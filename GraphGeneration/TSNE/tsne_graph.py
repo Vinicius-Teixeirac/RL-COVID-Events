@@ -2,12 +2,10 @@ import logging
 
 import numpy as np
 import networkx as nx
+from sklearn.decomposition import PCA
 # from sklearn.manifold import TSNE
-from openTSNE import PCA, TSNE
+from openTSNE import TSNE
 from sklearn.neighbors import kneighbors_graph
-
-from GraphGeneration import get_tsne_graph
-
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 

@@ -28,12 +28,8 @@ if __name__ == "__main__":
     # Parsing the arguments for the Random Projection method
     args = argument_parsing()
 
-    # Getting dataset specifications
-    dataset_name = args.dataset_name
-    output_dir = args.output_dir
-
     # Load the representation 
-    final_representation = load_event_features(dataset_name, 'final')
+    final_representation = load_event_features(args.dataset_name, 'final')
     
     # Generate the random projection graph from the representation
     rp_graph = get_random_projection_graph(
@@ -43,5 +39,5 @@ if __name__ == "__main__":
         random_state = args.random_state)
 
     # Define the output file path and save the graph edges
-    output_file = Path(output_dir) / dataset_name / f"random_proj_edges_{args.k_rp}.pkl"
+    output_file = Path(args.output_dir) / args.dataset_name / f"random_proj_edges_{args.k_rp}.pkl"
     save_edges(rp_graph, output_file)

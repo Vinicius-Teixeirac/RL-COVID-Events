@@ -22,3 +22,5 @@ get_log_file() {
   local params="$*"
   echo "${base_dir}/${prefix}_${dataset_stem}_${params}.log"
 }
+
+export -f log_msg get_log_file

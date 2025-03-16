@@ -26,6 +26,26 @@ run_evaluation() {
       comp_folder="./GeneratedGraphs/UMAP"
       n_jobs=47
       ;;
+    ICA)
+      comp_folder="./GeneratedGraphs/ICA"
+      n_jobs=3
+      ;;
+    Isomap)
+      comp_folder="./GeneratedGraphs/Isomap"
+      n_jobs=3
+      ;;
+    LLE)
+      comp_folder="./GeneratedGraphs/LLE"
+      n_jobs=3
+      ;;
+    RandomProjection)
+      comp_folder="./GeneratedGraphs/RandomProjection"
+      n_jobs=1
+      ;;
+    Spectral)
+      comp_folder="./GeneratedGraphs/Spectral"
+      n_jobs=3
+      ;;
     *)
       log_msg "ERROR" "Unknown evaluation method: $method"
       return 1
@@ -34,7 +54,7 @@ run_evaluation() {
 
   execute_if_not_done "$log_eval" "evaluation completed successfully" \
     python GraphEvaluation/evaluation_main.py \
-      --dataset_path "$dataset_path" \
+      --dataset_name "$dataset_stem" \
       --reference_folder "./GeneratedGraphs/Consistency" \
       --comparison_folder "$comp_folder" \
       --method "$method" \
@@ -42,6 +62,7 @@ run_evaluation() {
       --n_jobs "$n_jobs" || \
       log_msg "ERROR" "Evaluation for $method failed for dataset: $dataset_stem"
 }
+
 
 generate_critdd() {
   local dataset_stem="$1"
@@ -54,3 +75,5 @@ generate_critdd() {
       -p dataset "$dataset_stem" || \
       log_msg "ERROR" "Critical difference diagram generation failed for dataset: $dataset_stem"
 }
+
+export -f run_evaluation generate_critdd

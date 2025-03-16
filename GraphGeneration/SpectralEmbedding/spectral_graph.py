@@ -51,11 +51,8 @@ def get_spectral_graph(events: np.ndarray,
     # Defines the Laplacian Eigenmaps settings
     spectral = SpectralEmbedding(n_neighbors=n_neighbors, n_components=n_components, random_state=random_state)
 
-    #Fits it to the data
-    spectral.fit(events)
-
     # Transforms the data to get Laplacian Eigenmap-reducted representation
-    representation_spectral = spectral.transform(events)
+    representation_spectral = spectral.fit_transform(events)
 
     # Constructs k-nearest neighbors graph (returns a sparse matrix)
     adj_matrix_spectral = kneighbors_graph(representation_spectral, k_spectral, mode='connectivity')

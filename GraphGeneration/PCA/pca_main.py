@@ -28,12 +28,8 @@ if __name__ == "__main__":
     # Parsing the arguments that'll be used on the PCA method
     args = argument_parsing()
 
-    # Getting the dataset specifications
-    dataset_name = args.dataset_name
-    output_dir = args.output_dir
-    
     # Loading the representation and obtaining the PCA graph from it
-    final_representation = load_event_features(dataset_name, 'final')
+    final_representation = load_event_features(args.dataset_name, 'final')
     pca_graph = get_pca_graph(
         events = final_representation,
         k_pca = args.k_pca,
@@ -43,6 +39,6 @@ if __name__ == "__main__":
     # Defining the file's name and saving the representation
     whiten_suffix = "_whitened" if args.whiten else ""
 
-    output_file = Path(output_dir) / dataset_name / f"pca_edges_{args.k_pca}{whiten_suffix}.pkl"
+    output_file = Path(args.output_dir) / args.dataset_name / f"pca_edges_{args.k_pca}{whiten_suffix}.pkl"
     save_edges(pca_graph, output_file)
 
