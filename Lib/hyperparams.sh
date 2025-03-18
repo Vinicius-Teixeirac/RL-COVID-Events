@@ -4,7 +4,7 @@
 
 generate_hyperparams() {
   local num_rows="$1"
-  local num_parts=3
+  local num_parts=10
   local min_value=1
   local max_value
   max_value=$(echo "scale=0; sqrt($num_rows)" | bc)

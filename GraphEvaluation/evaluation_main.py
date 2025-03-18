@@ -4,8 +4,6 @@ import logging
 
 from GraphEvaluation import compare_graphs
 
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-
 def argument_parsing():
     """Parse command-line arguments."""
     parser = argparse.ArgumentParser(description="Evaluate graph representations in parallel.")
@@ -26,6 +24,7 @@ def argument_parsing():
     return parser.parse_args()
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
     # Parsing the evaluation arguments
     args = argument_parsing()
 

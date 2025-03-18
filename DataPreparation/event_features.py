@@ -6,13 +6,12 @@ import numpy as np
 import pandas as pd
 from sklearn.preprocessing import normalize, StandardScaler
 
-from Utils import save_event_features  # Renamed for consistency
-
-logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
+from Utils import save_event_features
 
 def get_event_features(dataset_path: str) -> dict[str, np.ndarray]:
     """
-    Extracts event features from a dataset.
+    Extracts event features from a given event dataset. An event has semantical (the news content), geospatial (the lat-long coordinates)
+    and temporal (a timestamp defined by the date an event happened) features.
 
     Parameters
     ----------
@@ -24,6 +23,11 @@ def get_event_features(dataset_path: str) -> dict[str, np.ndarray]:
     dict[str, np.ndarray]
         A dictionary containing semantic, geospatial, and temporal event features,
         as well as a final scaled feature set for dimensionality reduction.
+
+    Raises
+    ------
+    FileNotFoundError
+        If the file given by `dataset_path` is not found.
     """
 
     if not Path(dataset_path).is_file():
@@ -45,8 +49,7 @@ def get_event_features(dataset_path: str) -> dict[str, np.ndarray]:
     time_delta = [(d - minimal_date).total_seconds() / 3600 for d in dataset['dates']]
     temporal = np.array(time_delta, ndmin=2).T
 
-    # Concatenate features and scale them to get the final feature set
-    # but first transform lat-long into cartesian coordinates
+    # Transforming the geospatial features into cartesian coordinates (so they can be scaled)
     lat_rad = np.deg2rad(dataset['country_lat'])
     lng_rad = np.deg2rad(dataset['country_lng'])
     x, y, z = np.cos(lat_rad) * np.cos(lng_rad), np.cos(lat_rad) * np.sin(lng_rad), np.sin(lat_rad)
@@ -69,12 +72,20 @@ def get_event_features(dataset_path: str) -> dict[str, np.ndarray]:
 
     return event_features
 
-if __name__ == "__main__":
-    # Parsing the arguments used for feature extraction
+def argument_parsing():
+    """Parse command-line arguments."""
     parser = argparse.ArgumentParser(description="Generates scaled event features from a dataset.")
+
     parser.add_argument("--dataset_path", type=str, required=True, help="Path to the dataset (Pickle file).")
     parser.add_argument("--output_dir", type=str, default="./DatasetEventFeatures", help="Directory to save the output.")
-    args = parser.parse_args()
+
+    return parser.parse_args()
+
+if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
+
+    # Parsing the arguments used for feature extraction
+    args = argument_parsing()
     
     # Getting the dataset specifications
     dataset_path = args.dataset_path
@@ -83,4 +94,4 @@ if __name__ == "__main__":
     
     # Extracting and saving event features
     event_features = get_event_features(dataset_path)
-    save_event_features(event_features, dataset_name, output_dir)  # Renamed for clarity
+    save_event_features(event_features, dataset_name, output_dir)  

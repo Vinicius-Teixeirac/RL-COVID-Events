@@ -66,4 +66,3 @@ def get_lle_graph(events: np.ndarray,
     lle_graph = nx.from_scipy_sparse_array(adj_matrix_lle, create_using=nx.DiGraph)
 
     return lle_graph
-

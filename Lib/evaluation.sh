@@ -10,41 +10,41 @@ run_evaluation() {
   mkdir -p "$base_log_dir/Evaluation"
   local comp_folder n_jobs
   case "$method" in
-    PCA)
-      comp_folder="./GeneratedGraphs/PCA"
-      n_jobs=3
-      ;;
-    TSNE)
-      comp_folder="./GeneratedGraphs/TSNE"
-      n_jobs=25
-      ;;
-    "TSNE+PCA")
-      comp_folder="./GeneratedGraphs/TSNE_PCA"
-      n_jobs=25
-      ;;
-    UMAP)
-      comp_folder="./GeneratedGraphs/UMAP"
-      n_jobs=47
-      ;;
     ICA)
       comp_folder="./GeneratedGraphs/ICA"
-      n_jobs=3
+      n_jobs=115
       ;;
     Isomap)
       comp_folder="./GeneratedGraphs/Isomap"
-      n_jobs=3
+      n_jobs=115
       ;;
     LLE)
       comp_folder="./GeneratedGraphs/LLE"
-      n_jobs=3
+      n_jobs=115
+      ;;
+    PCA)
+      comp_folder="./GeneratedGraphs/PCA"
+      n_jobs=115
       ;;
     RandomProjection)
       comp_folder="./GeneratedGraphs/RandomProjection"
-      n_jobs=1
+      n_jobs=115
       ;;
     Spectral)
       comp_folder="./GeneratedGraphs/Spectral"
-      n_jobs=3
+      n_jobs=115
+      ;;
+    TSNE)
+      comp_folder="./GeneratedGraphs/TSNE"
+      n_jobs=115
+      ;;
+    "TSNE+PCA")
+      comp_folder="./GeneratedGraphs/TSNE_PCA"
+      n_jobs=115
+      ;;
+    UMAP)
+      comp_folder="./GeneratedGraphs/UMAP"
+      n_jobs=115
       ;;
     *)
       log_msg "ERROR" "Unknown evaluation method: $method"

@@ -38,4 +38,3 @@ if __name__ == "__main__":
 
     output_file = Path(args.output_dir) / args.dataset_name / f"isomap_edges_{args.k_isomap}_{args.n_neighbors}.pkl"
     save_edges(isomap_graph, output_file)
-

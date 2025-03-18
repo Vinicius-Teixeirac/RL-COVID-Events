@@ -44,4 +44,3 @@ if __name__ == "__main__":
 
     output_file = Path(args.output_dir) / args.dataset_name / f"lle_edges_{args.k_lle}_{args.n_neighbors}_{args.method}.pkl"
     save_edges(lle_graph, output_file)
-

@@ -55,9 +55,10 @@ process_dataset() {
 
   export n_neighbors 
 
-  PRECOMPUTED_KNN_EUCLIDEAN= $(run_compute_knn "$dataset_stem" "$max_neighbors" "euclidean")
-  PRECOMPUTED_KNN_COSINE= $(run_compute_knn "$dataset_stem" "$max_neighbors" "cosine")
-  export PRECOMPUTED_KNN_EUCLIDEAN, PRECOMPUTED_KNN_COSINE
+  PRECOMPUTED_KNN_EUCLIDEAN=$(run_compute_knn "$dataset_stem" "$max_neighbors" "euclidean")
+  PRECOMPUTED_KNN_COSINE=$(run_compute_knn "$dataset_stem" "$max_neighbors" "cosine")
+  
+  export PRECOMPUTED_KNN_EUCLIDEAN PRECOMPUTED_KNN_COSINE
 
   # Run graph generation steps.
   run_consistency_graphs
@@ -72,8 +73,8 @@ process_dataset() {
 
   # Run evaluations.
   local log_eval_base="$LOG_DIR/${dataset_stem}"
-  parallel -j 4 run_evaluation {1} "$dataset_path" "$dataset_stem" "$log_eval_base" \
-    ::: "PCA" "TSNE" "TSNE+PCA" "UMAP" "ICA" "Isomap" "LLE" "RandomProjection" "Spectral"
+  parallel -j 1 run_evaluation {1} "$dataset_path" "$dataset_stem" "$log_eval_base" \
+    ::: "ICA" "Isomap" "LLE" "PCA" "RandomProjection" "Spectral" "TSNE" "TSNE+PCA" "UMAP"     
   
   # Generate critical difference diagram.
   generate_critdd "$dataset_stem" "$dataset_path"

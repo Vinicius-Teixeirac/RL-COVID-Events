@@ -5,6 +5,7 @@ df_event_data_with_embeddings.pkl
 todo.md
 RL-COVID-EVENTS.code-workspace
 nohup.out
+implementation_diary.md
 
 # Python bytecode cache
 __pycache__/

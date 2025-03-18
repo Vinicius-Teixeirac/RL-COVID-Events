@@ -60,4 +60,3 @@ def get_spectral_graph(events: np.ndarray,
     spectral_graph = nx.from_scipy_sparse_array(adj_matrix_spectral, create_using=nx.DiGraph)
 
     return spectral_graph
-

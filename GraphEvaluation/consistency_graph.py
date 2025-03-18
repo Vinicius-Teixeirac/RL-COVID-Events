@@ -82,4 +82,3 @@ def get_consistency_graph(semantic_features: np.ndarray,
     adj_matrix_consistency = np.where(adj_matrix_consistency < threshold, 0, 1)
 
     return nx.DiGraph(adj_matrix_consistency)
-

@@ -60,4 +60,3 @@ def get_isomap_graph(events: np.ndarray,
     isomap_graph = nx.from_scipy_sparse_array(adj_matrix_isomap, create_using=nx.DiGraph)
 
     return isomap_graph
-

@@ -41,4 +41,3 @@ if __name__ == "__main__":
 
     output_file = Path(args.output_dir) / args.dataset_name / f"pca_edges_{args.k_pca}{whiten_suffix}.pkl"
     save_edges(pca_graph, output_file)
-
