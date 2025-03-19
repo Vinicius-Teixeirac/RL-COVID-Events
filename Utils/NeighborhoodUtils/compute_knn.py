@@ -47,7 +47,7 @@ def precompute_knn(dataset_name: str, n_neighbors: int, metric: str,  random_sta
     # Save precomputed k-NN graph
     with open(output_path, "wb") as f:
         pickle.dump(knn_graph, f)
-    print(f"Precomputed k-NN graph saved to {output_path}")
+    logging.info(f"Precomputed k-NN graph saved to {output_path}")
 
 
 def argument_parsing():
