@@ -37,7 +37,6 @@ def graph_edges_metrics(edges_predicted: set, ground_truth: set) -> tuple[float,
 
     return precision, recall
 
-
 def compare_reference_to_comparisons(ref_folder: str, comp_folder: str, ref_file: str, comp_files: list) -> list:
     """
     Loads the reference file once and compares it against a list of comparison files.

@@ -36,7 +36,6 @@ def precompute_knn(dataset_name: str, n_neighbors: int, metric: str,  random_sta
 
     events = load_event_features(dataset_name, 'final')
 
-    # Compute k-NN using the maximum n_neighbors
     knn_graph = nearest_neighbors(
         events,
         n_neighbors=n_neighbors,
@@ -75,4 +74,3 @@ if __name__ == '__main__':
     args = argument_parsing()
 
     precompute_knn(args.dataset_name, args.max_neighbors, args.metric, args.random_state, args.output_path)
-

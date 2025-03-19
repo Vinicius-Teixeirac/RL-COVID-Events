@@ -17,7 +17,7 @@ DATASET_DIR="${DATASET_DIR:-DataPreparation/UsageDatasets}"
 OUTPUT_DIR="${OUTPUT_DIR:-DatasetEventFeatures}"
 LOG_DIR="${LOG_DIR:-logs}"
 CRITDD_RESULTS="${CRITDD_RESULTS:-CritddResults}"
-MAX_PARALLEL_JOBS="${MAX_PARALLEL_JOBS:-40}"
+MAX_PARALLEL_JOBS="${MAX_PARALLEL_JOBS:-3}"
 
 # Exports them for use in parallel subshells.
 export DATASET_DIR OUTPUT_DIR LOG_DIR CRITDD_RESULTS MAX_PARALLEL_JOBS
@@ -62,7 +62,7 @@ if [ ${#datasets[@]} -eq 0 ]; then
   exit 1
 fi
 
-# Process all datasets in parallel.
+# Process all datasets in parallel. (Let's see how's it going tomorrow. Any case, it's as simple as running this process here sequentially)
 printf "%s\n" "${datasets[@]}" | parallel -j "$MAX_PARALLEL_JOBS" process_dataset {}
 
 log_msg "INFO" "All processes completed successfully!"

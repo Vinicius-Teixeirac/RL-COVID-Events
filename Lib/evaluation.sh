@@ -12,39 +12,39 @@ run_evaluation() {
   case "$method" in
     ICA)
       comp_folder="./GeneratedGraphs/ICA"
-      n_jobs=115
+      n_jobs=120
       ;;
     Isomap)
       comp_folder="./GeneratedGraphs/Isomap"
-      n_jobs=115
+      n_jobs=120
       ;;
     LLE)
       comp_folder="./GeneratedGraphs/LLE"
-      n_jobs=115
+      n_jobs=120
       ;;
     PCA)
       comp_folder="./GeneratedGraphs/PCA"
-      n_jobs=115
+      n_jobs=120
       ;;
     RandomProjection)
       comp_folder="./GeneratedGraphs/RandomProjection"
-      n_jobs=115
+      n_jobs=120
       ;;
     Spectral)
       comp_folder="./GeneratedGraphs/Spectral"
-      n_jobs=115
+      n_jobs=120
       ;;
     TSNE)
       comp_folder="./GeneratedGraphs/TSNE"
-      n_jobs=115
+      n_jobs=120
       ;;
     "TSNE+PCA")
       comp_folder="./GeneratedGraphs/TSNE_PCA"
-      n_jobs=115
+      n_jobs=120
       ;;
     UMAP)
       comp_folder="./GeneratedGraphs/UMAP"
-      n_jobs=115
+      n_jobs=120
       ;;
     *)
       log_msg "ERROR" "Unknown evaluation method: $method"

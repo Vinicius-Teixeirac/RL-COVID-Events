@@ -59,4 +59,3 @@ if __name__ == "__main__":
     # Defining the file's name and saving the representation 
     output_file = Path(args.output_dir) / args.dataset_name / f"umap_edges_{args.k_umap}_{args.n_neighbors}_{args.min_dist}_{args.initialization}_{args.metric}.pkl"
     save_edges(umap_graph, output_file)
-
