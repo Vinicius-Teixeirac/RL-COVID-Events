@@ -17,7 +17,7 @@ def get_tsne_graph(events: np.ndarray,
                    apply_pca: bool,
                    n_components: int,
                    random_state: int,
-                   n_jobs: int = 10) -> nx.DiGraph:
+                   n_jobs: int = -1) -> nx.DiGraph:
     """
     Generates a k-nearest neighbors graph using t-SNE-reduced representation.
 

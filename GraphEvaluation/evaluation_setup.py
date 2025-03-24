@@ -98,7 +98,7 @@ def compare_graphs(reference_folder: str, comparison_folder: str, method: str, o
         return
 
     # Create one task per reference file
-    all_results = Parallel(n_jobs=n_jobs, backend='loky')(
+    all_results = Parallel(n_jobs=n_jobs, backend='multiprocessing')(
         delayed(compare_reference_to_comparisons)(str(ref_dir), str(comp_dir), ref_file, comp_files)
         for ref_file in reference_files
     )

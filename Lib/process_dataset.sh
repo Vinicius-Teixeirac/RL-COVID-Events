@@ -1,18 +1,20 @@
-#!/bin/bash
-
 process_dataset() {
+  # Foundational variables: inputs and basic setup
   local dataset_path="$1"
   local dataset_name
   dataset_name=$(basename "$dataset_path")
-  dataset_stem="${dataset_name%.pkl}"
+  local dataset_stem="${dataset_name%.pkl}"
   export dataset_stem dataset_path
+  
+  local output_dir="DatasetEventFeatures"
+  
   log_msg "INFO" "Starting processing for dataset: $dataset_stem"
   mkdir -p "$LOG_DIR/$dataset_stem"
 
   # 1. Generate event features.
   if ! python DataPreparation/event_features.py \
          --dataset "$dataset_path" \
-         --output_dir "$OUTPUT_DIR" \
+         --output_dir "$output_dir" \
          > "$LOG_DIR/$dataset_stem/event_features.log" 2>&1; then
     log_msg "ERROR" "Feature generation failed for dataset: $dataset_stem"
     return 1
@@ -45,7 +47,7 @@ process_dataset() {
 
   export ks_values kg_values kt_values kica_values kisomap_values klle_values kpca_values krp_values kspectral_values ktsne_values kumap_values
 
-  n_neighbors=()
+  local n_neighbors=()
   for k in "${k_values[@]}"; do
     n_neighbors+=("$(( k + 5 ))")
   done
@@ -75,7 +77,7 @@ process_dataset() {
   local log_eval_base="$LOG_DIR/${dataset_stem}"
   parallel -j 1 run_evaluation {1} "$dataset_path" "$dataset_stem" "$log_eval_base" \
     ::: "ICA" "Isomap" "LLE" "PCA" "RandomProjection" "Spectral" "TSNE" "TSNE+PCA" "UMAP"     
-  
+
   # Generate critical difference diagram.
   generate_critdd "$dataset_stem" "$dataset_path"
 

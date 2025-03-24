@@ -1,9 +1,6 @@
 #!/bin/bash
 set -euo pipefail
 
-# (Optional) load config defaults from a separate file.
-# source "./lib/config.sh"
-
 # Loads configuration from .env file if available.
 CONFIG_FILE="${CONFIG_FILE:-./.env}"
 if [ -f "$CONFIG_FILE" ]; then
@@ -14,12 +11,13 @@ fi
 
 # Sets configurable paths with defaults.
 DATASET_DIR="${DATASET_DIR:-DataPreparation/UsageDatasets}"
-OUTPUT_DIR="${OUTPUT_DIR:-DatasetEventFeatures}"
 LOG_DIR="${LOG_DIR:-logs}"
 CRITDD_RESULTS="${CRITDD_RESULTS:-CritddResults}"
 
-# Creates necessary directories.
-mkdir -p "$LOG_DIR" "$CRITDD_RESULTS"
+export DATASET_DIR LOG_DIR CRITDD_RESULTS 
+
+# Starting the necessary directories.
+mkdir -p "$LOG_DIR" "$DATASET_DIR" "$CRITDD_RESULTS" 
 
 # Source our modular functions.
 source "./Lib/logging.sh"
@@ -59,71 +57,46 @@ if [ ${#datasets[@]} -eq 0 ]; then
 fi
 
 ###############################################################################
-# Granular Thresholds
-#   - Group 1: <= 10 MB  => 100 jobs
-#   - Group 2: <= 20 MB  => 80 jobs
-#   - Group 3: <= 30 MB  => 40 jobs
-#   - Group 4: <= 40 MB  => 25 jobs
-#   - Group 5: <= 50 MB  => 15 jobs
-#   - Group 6:  > 50 MB  =>  5 jobs
+# Sort datasets by file size and assign parallel jobs:
+#   - First file:    110 jobs  
+#   - Second file:   90 jobs  
+#   - Third file:    40 jobs  
+#   - Fourth file:   30 jobs  
+#   - Fifth file:    20 jobs  
+#   - Sixth file:    5 jobs  
+#   - Additional files: Default to 5 jobs  
+#  
+# Note: These are experimental values based on a 128-core, 126 GB machine. You may consider using as much cores as possible without running out of RAM
 ###############################################################################
 
-threshold1=$((10 * 1024 * 1024))  # 10 MB
-threshold2=$((20 * 1024 * 1024))  # 20 MB
-threshold3=$((30 * 1024 * 1024))  # 30 MB
-threshold4=$((40 * 1024 * 1024))  # 40 MB
-threshold5=$((50 * 1024 * 1024))  # 50 MB
+# Sort datasets by file size (ascending order).
+# Note: Adjust stat flags if you're on a non-GNU system.
+mapfile -t sorted_datasets < <(
+  for dataset in "${datasets[@]}"; do
+    size=$(stat -c%s "$dataset")
+    echo "$size:$dataset"
+  done | sort -n | cut -d: -f2-
+)
 
-# Initialize arrays for each group.
-group1=()  # <= threshold1 => 100 jobs
-group2=()  # > threshold1 && <= threshold2 => 80 jobs
-group3=()  # > threshold2 && <= threshold3 => 40 jobs
-group4=()  # > threshold3 && <= threshold4 => 25 jobs
-group5=()  # > threshold4 && <= threshold5 => 15 jobs
-group6=()  # > threshold5 => 5 jobs
+# Define desired parallel job counts for the first 6 datasets.
+job_counts=(110 90 40 30 20 5)
 
-# Categorize datasets by file size.
-for dataset in "${datasets[@]}"; do
-  size=$(stat -c%s "$dataset")
+for ((i = 0; i < ${#sorted_datasets[@]}; i++)); do
+  dataset="${sorted_datasets[$i]}"
   
-  if   [ "$size" -le "$threshold1" ]; then
-    group1+=("$dataset")
-  elif [ "$size" -le "$threshold2" ]; then
-    group2+=("$dataset")
-  elif [ "$size" -le "$threshold3" ]; then
-    group3+=("$dataset")
-  elif [ "$size" -le "$threshold4" ]; then
-    group4+=("$dataset")
-  elif [ "$size" -le "$threshold5" ]; then
-    group5+=("$dataset")
+  if [ "$i" -lt "${#job_counts[@]}" ]; then
+    jobs="${job_counts[$i]}"
   else
-    group6+=("$dataset")
+    jobs="${job_counts[-1]}"
   fi
+
+  log_msg "INFO" "Processing $dataset with $jobs parallel jobs."
+
+  MAX_PARALLEL_JOBS="$jobs"
+  export MAX_PARALLEL_JOBS
+
+  # Pass dataset to parallel 
+  parallel -j 1 process_dataset ::: "$dataset"
 done
-
-# Now process each group using the specified parallel job counts.
-if [ ${#group1[@]} -gt 0 ]; then
-  printf "%s\n" "${group1[@]}" | parallel -j 100 process_dataset {}
-fi
-
-if [ ${#group2[@]} -gt 0 ]; then
-  printf "%s\n" "${group2[@]}" | parallel -j 80 process_dataset {}
-fi
-
-if [ ${#group3[@]} -gt 0 ]; then
-  printf "%s\n" "${group3[@]}" | parallel -j 40 process_dataset {}
-fi
-
-if [ ${#group4[@]} -gt 0 ]; then
-  printf "%s\n" "${group4[@]}" | parallel -j 25 process_dataset {}
-fi
-
-if [ ${#group5[@]} -gt 0 ]; then
-  printf "%s\n" "${group5[@]}" | parallel -j 15 process_dataset {}
-fi
-
-if [ ${#group6[@]} -gt 0 ]; then
-  printf "%s\n" "${group6[@]}" | parallel -j 5 process_dataset {}
-fi
 
 log_msg "INFO" "All processes completed successfully!"
