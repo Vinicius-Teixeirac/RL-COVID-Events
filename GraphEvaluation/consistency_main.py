@@ -1,5 +1,5 @@
-import argparse
 import logging
+import argparse
 from pathlib import Path
 
 from GraphEvaluation import get_consistency_graph

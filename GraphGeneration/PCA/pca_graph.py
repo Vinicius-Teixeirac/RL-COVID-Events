@@ -10,7 +10,8 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(
 def get_pca_graph(events: np.ndarray,
                   k_pca: int,
                   whiten: bool,
-                  n_components: int) -> nx.DiGraph:
+                  n_components: int,
+                  random_state: int) -> nx.DiGraph:
     """
     Generates a k-nearest neighbors graph using PCA-reduced representation.
 
@@ -46,7 +47,7 @@ def get_pca_graph(events: np.ndarray,
         raise ValueError(f"n_components ({n_components}) cannot be greater than the number of features in representation ({events.shape[1]}).")
 
     # Defines the PCA settings
-    pca = PCA(whiten=whiten, n_components=n_components)
+    pca = PCA(whiten=whiten, n_components=n_components, random_state=random_state)
 
     # Fits it to the data
     pca.fit(events)

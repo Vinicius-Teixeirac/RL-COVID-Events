@@ -1,6 +1,6 @@
 # RL-COVID-Events  
 
-This repository provides the necessary code and resources for conducting experiments that evaluate **neighborhood topological preservation** in widely used literature **dimensionality reduction techniques** applied to **event-related COVID-19 data**. The main goal is determine wether or not such tecniques are useful for event analysis' representation learning.
+This repository provides the necessary code and resources for conducting experiments that evaluate **neighborhood topological preservation** in widely used **dimensionality reduction techniques** applied to **event-related COVID-19 data**. The main goal is determine whether or not such techniques are useful for event analysis' representation learning.
 
 ## Overview  
 
@@ -19,9 +19,8 @@ To analyze these data, we make samples of events based on predefined **labels**.
 From each of these three kinds of features individually, we generate **nearest-neighbor graphs**, emphasizing a different type of relationship:  
 
 - **Semantic Similarity Graph:** Connects events with most similar textual meanings based on their BERT embeddings.  
-- **Geospatial Proximity Graph:** Connects events that occurred neareast to each other geographically.  
+- **Geospatial Proximity Graph:** Connects events that occurred nearest to each other geographically.  
 - **Temporal Closeness Graph:** Connects events that happened within the closest time frame.  
-
 
 <div style="text-align: center; margin-bottom: 20px;">
     <img src="Images/semantic_graph_example.png" alt="Semantic Graph" style="width: 100%; max-width: 500px; height: auto;">
@@ -144,7 +143,7 @@ If they perform well in that task, the new feature space is low-dimensional and 
 
 # How to run
 
-All experimental steps are orchestrated via the `run_experiments.sh` script. After setting up the environment and hardware configs, to generate every result, without anyelse work, simply execute the following command in your terminal:
+All experimental steps are orchestrated via the `run_experiments.sh` script. After setting up the environment and hardware configs, to generate every result, without any additional work, simply execute the following command in your terminal:
 
 ```bash
 ./run_experiments.sh
@@ -180,8 +179,8 @@ Finally, run the critdd_template to generate an analysis notebook that includes 
 The results for each dataset will be stored in the CritddResults folder.
 
 - Side Notes:
-1. Review the `run_experiments.sh` script and `/Lib` directory to configure the optimal hardware parameters (e.g., n_jobs, parallel execution, etc.) based on your system. Always keep in mind the number of CPU cores you have avaible.
-2. You can also adapt the prospect files and dir that will be created easily by passing parameters and by configure the `run_experiments.sh`.
+1. Review the `run_experiments.sh` script and `/Lib` directory to configure the optimal hardware parameters (e.g., n_jobs, parallel execution, etc.) based on your system. Always keep in mind the number of CPU cores you have available.
+2. You can also adapt the prospect files and dir that will be created easily by passing parameters and by configuring the `run_experiments.sh`.
 2. Please note, this process may take some time. The results were generated using a highly up-to-date and powerful computer.
 3. The work is meant to be general-event-purpose; We are using COVID as background just to exemplify the methodology.
 

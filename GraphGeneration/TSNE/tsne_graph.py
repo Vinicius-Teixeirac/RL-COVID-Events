@@ -68,12 +68,11 @@ def get_tsne_graph(events: np.ndarray,
         raise ValueError(f"Perplexity ({perplexity}) must be smaller than the number of samples ({events.shape[0]}).")
     
     if apply_pca:
-        events = PCA(n_components=50).fit_transform(events)
+        events = PCA(n_components=50, random_state=random_state).fit_transform(events)
 
     # Defines the t-SNE settings 
-    tsne = TSNE(perplexity=perplexity, initialization=initialization,
-                n_components=n_components, random_state=random_state,
-                n_jobs=n_jobs, metric=metric) 
+    tsne = TSNE(perplexity=perplexity, initialization=initialization, metric=metric,
+                n_components=n_components, random_state=random_state, n_jobs=n_jobs) 
     
     # Gets the new transformed space
     representation_tSNE = tsne.fit(events) 

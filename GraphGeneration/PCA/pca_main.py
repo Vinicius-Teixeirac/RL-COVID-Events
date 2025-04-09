@@ -15,6 +15,8 @@ def argument_parsing():
                         help='PCA whiten hyperparameter (0 or 1)')
     parser.add_argument('--n_components', type=int, default=2,
                         help='Number of components for PCA dimensionality reduction (default: 2)')
+    parser.add_argument('--random_state', type=int, default=42,
+                        help='Random seed for reproducibility (default: 42)')
     parser.add_argument('--dataset_name', type=str, required=True,
                         help='The name of the current dataset')
     parser.add_argument("--output_dir", type=str, default="./GeneratedGraphs/PCA",

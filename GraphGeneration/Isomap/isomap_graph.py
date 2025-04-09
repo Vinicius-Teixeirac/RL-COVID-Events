@@ -46,7 +46,7 @@ def get_isomap_graph(events: np.ndarray,
         raise ValueError(f"n_components ({n_components}) cannot be greater than the number of features in input data ({events.shape[1]}).")
     
     # Defines the Isomap settings
-    isomap = Isomap(n_neighbors=n_neighbors, n_components=n_components)
+    isomap = Isomap(n_neighbors=n_neighbors, n_components=n_components, n_jobs=-1)
 
     # Fits it to data
     isomap.fit(events)

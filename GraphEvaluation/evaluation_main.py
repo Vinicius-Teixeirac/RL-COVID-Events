@@ -1,6 +1,6 @@
+import logging
 import argparse
 from pathlib import Path
-import logging
 
 from GraphEvaluation import compare_graphs
 

@@ -143,7 +143,7 @@ run_tsne_graphs() {
 
 # UMAP
 run_umap_cmd() {
-  local kumap="$1" umap_neighbors="$2" min_dist="$3" init="$4" metric="$5"
+  local kumap="$1" n_neighbors="$2" min_dist="$3" init="$4" metric="$5"
   
   local preknn
   # Select the appropriate precomputed k-NN file based on the metric.
@@ -154,12 +154,12 @@ run_umap_cmd() {
   fi
 
   local log_file
-  log_file=$(get_log_file "$LOG_DIR/${dataset_stem}/UMAP" "umap" "$dataset_stem" "$kumap" "$umap_neighbors" "$min_dist" "$init" "$metric")
+  log_file=$(get_log_file "$LOG_DIR/${dataset_stem}/UMAP" "umap" "$dataset_stem" "$kumap" "$n_neighbors" "$min_dist" "$init" "$metric")
   
   execute_if_not_done "$log_file" "Edges saved successfully" \
     python GraphGeneration/UMAP/umap_main.py \
       --k_umap "$kumap" \
-      --n_neighbors "$umap_neighbors" \
+      --n_neighbors "$n_neighbors" \
       --min_dist "$min_dist" \
       --initialization "$init" \
       --metric "$metric" \

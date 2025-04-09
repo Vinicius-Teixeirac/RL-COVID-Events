@@ -20,14 +20,14 @@ export DATASET_DIR LOG_DIR CRITDD_RESULTS
 mkdir -p "$LOG_DIR" "$DATASET_DIR" "$CRITDD_RESULTS" 
 
 # Source our modular functions.
-source "./Lib/logging.sh"
-source "./Lib/dependencies.sh"
-source "./Lib/checking.sh"
-source "./Lib/preprocessing.sh"
-source "./Lib/hyperparams.sh"
-source "./Lib/graph_generation.sh"
-source "./Lib/evaluation.sh"
-source "./Lib/process_dataset.sh"
+source "./Scripts/logging.sh"
+source "./Scripts/dependencies.sh"
+source "./Scripts/checking.sh"
+source "./Scripts/preprocessing.sh"
+source "./Scripts/hyperparams.sh"
+source "./Scripts/graph_generation.sh"
+source "./Scripts/evaluation.sh"
+source "./Scripts/process_dataset.sh"
 
 # Centralized summary log and lock file.
 MAIN_LOG="$LOG_DIR/script_summary.log"
@@ -63,7 +63,7 @@ fi
 #   - Third file:    40 jobs  
 #   - Fourth file:   30 jobs  
 #   - Fifth file:    20 jobs  
-#   - Sixth file:    5 jobs  
+#   - Sixth file:    15 jobs  
 #   - Additional files: Default to 5 jobs  
 #  
 # Note: These are experimental values based on a 128-core, 126 GB machine. You may consider using as much cores as possible without running out of RAM
@@ -79,7 +79,7 @@ mapfile -t sorted_datasets < <(
 )
 
 # Define desired parallel job counts for the first 6 datasets.
-job_counts=(110 90 40 30 20 5)
+job_counts=(110 90 40 30 20 10)
 
 for ((i = 0; i < ${#sorted_datasets[@]}; i++)); do
   dataset="${sorted_datasets[$i]}"
