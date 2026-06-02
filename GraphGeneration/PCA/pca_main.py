@@ -39,8 +39,5 @@ if __name__ == "__main__":
         n_components = args.n_components,
         random_state = args.random_state)
 
-    # Defining the file's name and saving the representation
-    whiten_suffix = "_whitened" if args.whiten else ""
-
-    output_file = Path(args.output_dir) / args.dataset_name / f"pca_edges_{args.k_pca}{whiten_suffix}.pkl"
+    output_file = Path(args.output_dir) / args.dataset_name / f"pca_edges_{args.k_pca}_{args.whiten}.pkl"
     save_edges(pca_graph, output_file)

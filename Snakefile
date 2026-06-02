@@ -34,6 +34,10 @@ def method_graph_dir(method):
     return f"{base}/{mapping.get(method, method)}"
 
 
+def features_file(dataset):
+    return f"{config['features_dir']}/{dataset}_event_features.pkl"
+
+
 # ---------------------------------------------------------------------------
 # Top-level target
 # ---------------------------------------------------------------------------
@@ -47,7 +51,7 @@ rule all:
 
 
 # ---------------------------------------------------------------------------
-# Preprocessing  (run once; output dir is treated as sentinel)
+# Preprocessing  (run once; output sentinel touched on success)
 # ---------------------------------------------------------------------------
 
 rule preprocess:
@@ -56,7 +60,7 @@ rule preprocess:
     log:
         "logs/preprocessing.log",
     shell:
-        "papermill DataPreparation/pre_processing_datasets.ipynb /dev/null"
+        "papermill DataPreparation/preprocessing_datasets.ipynb /dev/null"
         " -p output_dir {config[dataset_dir]}"
         " > {log} 2>&1"
 
@@ -90,7 +94,7 @@ checkpoint generate_params:
 
 
 # ---------------------------------------------------------------------------
-# Feature extraction
+# Feature extraction  — writes one combined pkl: {dataset}_event_features.pkl
 # ---------------------------------------------------------------------------
 
 rule event_features:
@@ -98,10 +102,7 @@ rule event_features:
         dataset=config["dataset_dir"] + "/{dataset}.pkl",
         params="workflow/params/{dataset}.json",
     output:
-        expand(
-            config["features_dir"] + "/{{dataset}}/{feat}.pkl",
-            feat=["semantic", "geospatial", "temporal", "final"],
-        ),
+        config["features_dir"] + "/{dataset}_event_features.pkl",
     log:
         "logs/{dataset}/event_features.log",
     shell:
@@ -117,7 +118,7 @@ rule event_features:
 
 rule precompute_knn:
     input:
-        final=config["features_dir"] + "/{dataset}/final.pkl",
+        features=lambda w: features_file(w.dataset),
         params="workflow/params/{dataset}.json",
     output:
         config["precomputed_knn_dir"] + "/{dataset}_{metric}_knn.pkl",
@@ -144,9 +145,7 @@ rule precompute_knn:
 
 rule consistency_graph:
     input:
-        config["features_dir"] + "/{dataset}/semantic.pkl",
-        config["features_dir"] + "/{dataset}/geospatial.pkl",
-        config["features_dir"] + "/{dataset}/temporal.pkl",
+        lambda w: features_file(w.dataset),
     output:
         config["graph_dir"] + "/Consistency/{dataset}/consistency_edges_{ks}_{kg}_{kt}.pkl",
     log:
@@ -179,7 +178,7 @@ rule all_consistency:
 
 rule pca_graph:
     input:
-        config["features_dir"] + "/{dataset}/final.pkl",
+        lambda w: features_file(w.dataset),
     output:
         config["graph_dir"] + "/PCA/{dataset}/pca_edges_{k}_{whiten}.pkl",
     log:
@@ -216,7 +215,7 @@ rule all_pca:
 
 rule ica_graph:
     input:
-        config["features_dir"] + "/{dataset}/final.pkl",
+        lambda w: features_file(w.dataset),
     output:
         config["graph_dir"] + "/ICA/{dataset}/ica_edges_{k}_{whiten}_{fun}.pkl",
     log:
@@ -256,7 +255,7 @@ rule all_ica:
 
 rule isomap_graph:
     input:
-        config["features_dir"] + "/{dataset}/final.pkl",
+        lambda w: features_file(w.dataset),
     output:
         config["graph_dir"] + "/Isomap/{dataset}/isomap_edges_{k}_{n_neighbors}.pkl",
     log:
@@ -292,7 +291,7 @@ rule all_isomap:
 
 rule lle_graph:
     input:
-        config["features_dir"] + "/{dataset}/final.pkl",
+        lambda w: features_file(w.dataset),
     output:
         config["graph_dir"] + "/LLE/{dataset}/lle_edges_{k}_{n_neighbors}_{method}.pkl",
     log:
@@ -332,9 +331,9 @@ rule all_lle:
 
 rule rp_graph:
     input:
-        config["features_dir"] + "/{dataset}/final.pkl",
+        lambda w: features_file(w.dataset),
     output:
-        config["graph_dir"] + "/RandomProjection/{dataset}/rp_edges_{k}.pkl",
+        config["graph_dir"] + "/RandomProjection/{dataset}/random_proj_edges_{k}.pkl",
     log:
         "logs/{dataset}/RandomProjection/rp_{k}.log",
     params:
@@ -353,7 +352,7 @@ rule rp_graph:
 def all_rp_outputs(wildcards):
     p = load_params(wildcards.dataset)
     return expand(
-        config["graph_dir"] + "/RandomProjection/{dataset}/rp_edges_{k}.pkl",
+        config["graph_dir"] + "/RandomProjection/{dataset}/random_proj_edges_{k}.pkl",
         dataset=wildcards.dataset, k=p["k_values"],
     )
 
@@ -369,7 +368,7 @@ rule all_rp:
 
 rule spectral_graph:
     input:
-        config["features_dir"] + "/{dataset}/final.pkl",
+        lambda w: features_file(w.dataset),
     output:
         config["graph_dir"] + "/Spectral/{dataset}/spectral_edges_{k}_{n_neighbors}.pkl",
     log:
@@ -402,16 +401,18 @@ rule all_spectral:
 
 
 # ---------------------------------------------------------------------------
-# t-SNE
+# t-SNE  (apply_pca=0 → GeneratedGraphs/TSNE/,  apply_pca=1 → TSNE_PCA/)
+# These are separate rules because apply_pca changes both the directory and
+# the filename prefix written by tsne_main.py.
 # ---------------------------------------------------------------------------
 
 rule tsne_graph:
     input:
-        config["features_dir"] + "/{dataset}/final.pkl",
+        lambda w: features_file(w.dataset),
     output:
-        config["graph_dir"] + "/TSNE/{dataset}/tsne_edges_{k}_{perplexity}_{init}_{metric}_{apply_pca}.pkl",
+        config["graph_dir"] + "/TSNE/{dataset}/tsne_edges_{k}_{perplexity}_{init}_{metric}.pkl",
     log:
-        "logs/{dataset}/TSNE/tsne_{k}_{perplexity}_{init}_{metric}_{apply_pca}.log",
+        "logs/{dataset}/TSNE/tsne_{k}_{perplexity}_{init}_{metric}.log",
     params:
         n_components=config["n_components"],
         random_state=config["random_state"],
@@ -422,7 +423,31 @@ rule tsne_graph:
         " --perplexity {wildcards.perplexity}"
         " --initialization {wildcards.init}"
         " --metric {wildcards.metric}"
-        " --apply_pca {wildcards.apply_pca}"
+        " --apply_pca 0"
+        " --n_components {params.n_components}"
+        " --random_state {params.random_state}"
+        " --output_dir {config[graph_dir]}/TSNE"
+        " > {log} 2>&1"
+
+
+rule tsne_pca_graph:
+    input:
+        lambda w: features_file(w.dataset),
+    output:
+        config["graph_dir"] + "/TSNE_PCA/{dataset}/tsne_pca_edges_{k}_{perplexity}_{init}_{metric}.pkl",
+    log:
+        "logs/{dataset}/TSNE_PCA/tsne_pca_{k}_{perplexity}_{init}_{metric}.log",
+    params:
+        n_components=config["n_components"],
+        random_state=config["random_state"],
+    shell:
+        "python GraphGeneration/TSNE/tsne_main.py"
+        " --dataset_name {wildcards.dataset}"
+        " --k_tsne {wildcards.k}"
+        " --perplexity {wildcards.perplexity}"
+        " --initialization {wildcards.init}"
+        " --metric {wildcards.metric}"
+        " --apply_pca 1"
         " --n_components {params.n_components}"
         " --random_state {params.random_state}"
         " --output_dir {config[graph_dir]}/TSNE"
@@ -432,13 +457,24 @@ rule tsne_graph:
 def all_tsne_outputs(wildcards):
     p = load_params(wildcards.dataset)
     return expand(
-        config["graph_dir"] + "/TSNE/{dataset}/tsne_edges_{k}_{perp}_{init}_{metric}_{apca}.pkl",
+        config["graph_dir"] + "/TSNE/{dataset}/tsne_edges_{k}_{perp}_{init}_{metric}.pkl",
         dataset=wildcards.dataset,
         k=p["k_values"],
         perp=config["tsne_perplexities"],
         init=config["tsne_inits"],
         metric=config["metrics"],
-        apca=config["tsne_apply_pca"],
+    )
+
+
+def all_tsne_pca_outputs(wildcards):
+    p = load_params(wildcards.dataset)
+    return expand(
+        config["graph_dir"] + "/TSNE_PCA/{dataset}/tsne_pca_edges_{k}_{perp}_{init}_{metric}.pkl",
+        dataset=wildcards.dataset,
+        k=p["k_values"],
+        perp=config["tsne_perplexities"],
+        init=config["tsne_inits"],
+        metric=config["metrics"],
     )
 
 
@@ -447,13 +483,18 @@ rule all_tsne:
     output: touch("logs/{dataset}/TSNE.done")
 
 
+rule all_tsne_pca:
+    input: all_tsne_pca_outputs
+    output: touch("logs/{dataset}/TSNE_PCA.done")
+
+
 # ---------------------------------------------------------------------------
 # UMAP
 # ---------------------------------------------------------------------------
 
 rule umap_graph:
     input:
-        features=config["features_dir"] + "/{dataset}/final.pkl",
+        features=lambda w: features_file(w.dataset),
         knn=config["precomputed_knn_dir"] + "/{dataset}_{metric}_knn.pkl",
     output:
         config["graph_dir"] + "/UMAP/{dataset}/umap_edges_{k}_{n_neighbors}_{min_dist}_{init}_{metric}.pkl",
@@ -507,7 +548,7 @@ _METHOD_TO_DONE_RULE = {
     "RandomProjection": "RandomProjection",
     "Spectral": "Spectral",
     "TSNE": "TSNE",
-    "TSNE+PCA": "TSNE",
+    "TSNE+PCA": "TSNE_PCA",
     "UMAP": "UMAP",
 }
 
@@ -517,7 +558,7 @@ rule evaluate:
         consistency="logs/{dataset}/consistency.done",
         method_graphs=lambda w: f"logs/{w.dataset}/{_METHOD_TO_DONE_RULE[w.method]}.done",
     output:
-        config["eval_dir"] + "/{dataset}/{method}_results.csv",
+        config["eval_dir"] + "/{dataset}/comparison_results_{method}.parquet",
     log:
         "logs/{dataset}/Evaluation/eval_{method}.log",
     params:
@@ -541,7 +582,7 @@ rule evaluate:
 rule critdd:
     input:
         expand(
-            config["eval_dir"] + "/{{dataset}}/{method}_results.csv",
+            config["eval_dir"] + "/{{dataset}}/comparison_results_{method}.parquet",
             method=METHODS,
         ),
     output:
