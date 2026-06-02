@@ -39,6 +39,7 @@ if __name__ == "__main__":
     # Parsing the arguments that'll be used on the UMAP method
     args = argument_parsing()
 
+    precomputed_knn = None
     if args.precomputed_knn_path is not None:
         with open(args.precomputed_knn_path, "rb") as f:
             precomputed_knn = pickle.load(f)

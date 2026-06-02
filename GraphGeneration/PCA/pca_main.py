@@ -36,7 +36,8 @@ if __name__ == "__main__":
         events = final_representation,
         k_pca = args.k_pca,
         whiten = bool(args.whiten),
-        n_components = args.n_components)
+        n_components = args.n_components,
+        random_state = args.random_state)
 
     # Defining the file's name and saving the representation
     whiten_suffix = "_whitened" if args.whiten else ""

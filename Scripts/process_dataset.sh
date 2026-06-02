@@ -13,7 +13,7 @@ process_dataset() {
 
   # 1. Generate event features.
   if ! python DataPreparation/event_features.py \
-         --dataset "$dataset_path" \
+         --dataset_path "$dataset_path" \
          --output_dir "$output_dir" \
          > "$LOG_DIR/$dataset_stem/event_features.log" 2>&1; then
     log_msg "ERROR" "Feature generation failed for dataset: $dataset_stem"
