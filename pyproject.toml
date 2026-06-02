@@ -1,0 +1,26 @@
+[project]
+name = "rl-covid-events"
+version = "0.1.0"
+requires-python = ">=3.11"
+dependencies = [
+    "numpy==1.26.4",
+    "scipy==1.15.1",
+    "scikit-learn==1.6.1",
+    "pandas==2.2.3",
+    "networkx==3.4.2",
+    "umap-learn==0.5.7",
+    "openTSNE==1.0.2",
+    "critdd @ git+https://github.com/mirkobunse/critdd@0d5422d6e10a69f2a2da2252d59de9e959caa19e",
+    "numba",
+    "pynndescent",
+    "joblib",
+    "gdown",
+    "papermill",
+    "tqdm",
+]
+
+[dependency-groups]
+workflow = ["snakemake>=8.0"]
+
+[tool.uv]
+package = false
