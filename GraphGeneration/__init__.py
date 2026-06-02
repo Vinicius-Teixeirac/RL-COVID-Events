@@ -10,7 +10,6 @@ from .UMAP.umap_graph import get_umap_graph
 __all__ = [
     "get_random_projection_graph",
     "get_pca_graph",
-    "get_pca_reduction",
     "get_ica_graph",
     "get_isomap_graph",
     "get_lle_graph",
