@@ -1,0 +1,44 @@
+dataset_dir: DataPreparation/UsageDatasets
+graph_dir: GeneratedGraphs
+eval_dir: EvaluationResults
+critdd_dir: CritddResults
+features_dir: DatasetEventFeatures
+precomputed_knn_dir: PrecomputedKNNs
+
+n_components: 2
+random_state: 42
+eval_n_jobs: 100
+
+# Static hyperparameter grids
+ica_whitens:
+  - "unit-variance"
+  - "arbitrary-variance"
+ica_funs:
+  - "logcosh"
+  - "exp"
+  - "cube"
+
+lle_methods:
+  - "standard"
+  - "modified"
+
+tsne_perplexities: [5, 10, 20, 30, 40, 50]
+tsne_inits:
+  - "pca"
+  - "spectral"
+tsne_apply_pca: [0, 1]
+
+umap_min_dists: [0.0, 0.25, 0.5, 0.99]
+umap_inits:
+  - "pca"
+  - "spectral"
+
+metrics:
+  - "euclidean"
+  - "cosine"
+
+pca_whitens: [0, 1]
+
+# Parallelism — tune to your machine
+cores: 8
+eval_n_parallel: 9
