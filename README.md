@@ -141,6 +141,23 @@ This repository aims to evaluate whether tecniques like PCA, t-SNE, and UMAP can
 
 If they perform well in that task, the new feature space is low-dimensional and maintain the original proximities, besides the fact they may be the main simple options for dimensionality reduction. If not, there's a path explore modern representation learning techniques.
 
+# Stack
+
+| Layer | Technology |
+|-------|-----------|
+| Language | Python 3.11 – 3.12 |
+| Package management | [uv](https://docs.astral.sh/uv/) |
+| Pipeline orchestration | [Snakemake](https://snakemake.readthedocs.io/) |
+| DR — linear | [scikit-learn](https://scikit-learn.org/) — PCA, ICA (FastICA), Gaussian Random Projection |
+| DR — manifold | [scikit-learn](https://scikit-learn.org/) — Isomap, LLE, Spectral Embedding |
+| DR — t-SNE | [openTSNE](https://opentsne.readthedocs.io/) |
+| DR — UMAP | [umap-learn](https://umap-learn.readthedocs.io/) |
+| Graphs | [NetworkX](https://networkx.org/) |
+| Numerical | [NumPy](https://numpy.org/) · [SciPy](https://scipy.org/) · [pandas](https://pandas.pydata.org/) |
+| Parallelism | [joblib](https://joblib.readthedocs.io/) |
+| Notebook execution | [papermill](https://papermill.readthedocs.io/) |
+| Statistical diagrams | [critdd](https://github.com/mirkobunse/critdd) |
+
 # How to run
 
 ## Environment setup
