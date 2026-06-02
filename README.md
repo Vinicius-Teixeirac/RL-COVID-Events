@@ -143,45 +143,52 @@ If they perform well in that task, the new feature space is low-dimensional and 
 
 # How to run
 
-All experimental steps are orchestrated via the `run_experiments.sh` script. After setting up the environment and hardware configs, to generate every result, without any additional work, simply execute the following command in your terminal:
+## Environment setup
+
+Install [uv](https://docs.astral.sh/uv/getting-started/installation/), then:
 
 ```bash
-./run_experiments.sh
+uv sync                   # install runtime dependencies (Python 3.11–3.12)
+uv sync --group workflow  # also install Snakemake
 ```
-Before running the experiments, please ensure you have installed all necessary dependencies by reviewing the environment.yml or requirements.txt files. We highly recommend you to do so.
 
-**Note**: In future versions, run_experiments.sh may be replaced by a main.py script to improve cross-platform compatibility. Using bash was more related to the ease of parallel programming.
+## Running the full pipeline
 
-## Execution Workflow
+```bash
+uv run snakemake --cores all
+```
 
-The workflow that run_experiments.sh employs is equivalent to the following steps:
+This executes the complete workflow: preprocessing → feature extraction → graph generation (all 8 DR methods + consistency graphs) → evaluation → critical difference diagrams.
 
-- Data Preparation:
+To preview what would run without executing:
 
-Navigate to the DataPreparation folder.
-Open pre_processing_dataset.ipynb to process the original dataset and generate sampled datasets, which will be stored in the UsageDatasets folder.
+```bash
+uv run snakemake --cores all -n
+```
 
-- Feature Extraction:
+## Tuning for your hardware
 
-For each dataset, run event_features.py to extract event features.
-The extracted features will be saved in the DatasetEventFeatures folder.
+Edit `workflow/config.yaml` before running:
 
-- Graph Generation:
+| Key | Default | Effect |
+|-----|---------|--------|
+| `cores` | `8` | Set to your CPU core count |
+| `eval_n_jobs` | `100` | Parallel workers inside each evaluation step |
+| `n_components` | `2` | Output dimensionality for all DR methods |
+| `random_state` | `42` | Seed for all stochastic methods |
 
-Generate the reference nearest-neighbor graphs in the GraphEvaluation folder using consistency_main.py.
-Apply dimensionality reduction in the GraphGeneration folder by running pca_main.py, tsne_main.py, umap_main.py, etc.
-The generated graphs will be saved in the GeneratedGraphs folder.
+## Execution workflow
 
-- Evaluation:
+The pipeline stages, in order:
 
-Return to the GraphEvaluation folder and execute evaluation_main.py to calculate precision and recall by comparing each reduced graph with the reference consistency graph. Note this part can take a while, depending on how many graphs were generated.
-Finally, run the critdd_template to generate an analysis notebook that includes a critical difference diagram showing the best-performing technique.
-The results for each dataset will be stored in the CritddResults folder.
+1. **Preprocessing** — runs `DataPreparation/preprocessing_datasets.ipynb` via papermill; produces sampled datasets in `DataPreparation/UsageDatasets/`
+2. **Feature extraction** — extracts semantic (768-d BERT), geospatial (lat/lng), and temporal features per dataset; saves to `DatasetEventFeatures/`
+3. **Graph generation** — builds k-NN graphs for all hyperparameter combinations; the k-value sweep is derived automatically from `sqrt(n_rows)` per dataset
+4. **Evaluation** — compares each DR graph against every consistency graph; results saved as Parquet files in `EvaluationResults/`
+5. **Critical difference diagrams** — ranks methods via `critdd`; output notebooks in `CritddResults/`
 
-- Side Notes:
-1. Review the `run_experiments.sh` script and `/Lib` directory to configure the optimal hardware parameters (e.g., n_jobs, parallel execution, etc.) based on your system. Always keep in mind the number of CPU cores you have available.
-2. You can also adapt the prospect files and dir that will be created easily by passing parameters and by configuring the `run_experiments.sh`.
-2. Please note, this process may take some time. The results were generated using a highly up-to-date and powerful computer.
-3. The work is meant to be general-event-purpose; We are using COVID as background just to exemplify the methodology.
+Snakemake tracks all file dependencies and skips steps whose outputs already exist, so partial runs can be resumed safely.
+
+> **Note:** A full run across 6 datasets is compute-intensive and was originally run on a 128-core machine. On a typical workstation, expect several hours per dataset. The original shell scripts are archived in `Scripts/legacy/` for reference.
 
 # How to contribute
