@@ -273,11 +273,12 @@ rule isomap_graph:
 
 def all_isomap_outputs(wildcards):
     p = load_params(wildcards.dataset)
-    pairs = list(zip(p["k_values"], p["n_neighbors"]))
-    return [
-        f"{config['graph_dir']}/Isomap/{wildcards.dataset}/isomap_edges_{k}_{nn}.pkl"
-        for k, nn in pairs
-    ]
+    return expand(
+        config["graph_dir"] + "/Isomap/{dataset}/isomap_edges_{k}_{nn}.pkl",
+        dataset=wildcards.dataset,
+        k=p["k_values"],
+        nn=p["n_neighbors"],
+    )
 
 
 rule all_isomap:
@@ -312,10 +313,10 @@ rule lle_graph:
 
 def all_lle_outputs(wildcards):
     p = load_params(wildcards.dataset)
-    pairs = list(zip(p["k_values"], p["n_neighbors"]))
     return [
         f"{config['graph_dir']}/LLE/{wildcards.dataset}/lle_edges_{k}_{nn}_{m}.pkl"
-        for k, nn in pairs
+        for k in p["k_values"]
+        for nn in p["n_neighbors"]
         for m in config["lle_methods"]
     ]
 
@@ -388,11 +389,12 @@ rule spectral_graph:
 
 def all_spectral_outputs(wildcards):
     p = load_params(wildcards.dataset)
-    pairs = list(zip(p["k_values"], p["n_neighbors"]))
-    return [
-        f"{config['graph_dir']}/Spectral/{wildcards.dataset}/spectral_edges_{k}_{nn}.pkl"
-        for k, nn in pairs
-    ]
+    return expand(
+        config["graph_dir"] + "/Spectral/{dataset}/spectral_edges_{k}_{nn}.pkl",
+        dataset=wildcards.dataset,
+        k=p["k_values"],
+        nn=p["n_neighbors"],
+    )
 
 
 rule all_spectral:
@@ -520,11 +522,11 @@ rule umap_graph:
 
 def all_umap_outputs(wildcards):
     p = load_params(wildcards.dataset)
-    pairs = list(zip(p["k_values"], p["n_neighbors"]))
     return [
         f"{config['graph_dir']}/UMAP/{wildcards.dataset}"
         f"/umap_edges_{k}_{nn}_{md}_{init}_{metric}.pkl"
-        for k, nn in pairs
+        for k in p["k_values"]
+        for nn in p["n_neighbors"]
         for md in config["umap_min_dists"]
         for init in config["umap_inits"]
         for metric in config["metrics"]

@@ -6,8 +6,6 @@ from joblib import Parallel, delayed
 
 from Utils import load_edges
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
-
 def graph_edges_metrics(edges_predicted: set, ground_truth: set) -> tuple[float, float]:
     """
     Calculates precision and recall for the predicted graph edges against the ground truth.
