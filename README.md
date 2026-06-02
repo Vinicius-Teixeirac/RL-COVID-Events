@@ -1,5 +1,9 @@
 # RL-COVID-Events  
 
+This repository provides the necessary code and resources for conducting experiments that evaluate **neighborhood topological preservation** in widely used **dimensionality reduction techniques** applied to **event-related COVID-19 data**. The main goal is determine whether or not such techniques are useful for event analysis' representation learning.
+
+## Stack
+
 [![Python](https://img.shields.io/badge/Python-3.11--3.12-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
 [![uv](https://img.shields.io/badge/uv-package%20manager-DE5FE9?style=for-the-badge)](https://docs.astral.sh/uv/)
 [![Snakemake](https://img.shields.io/badge/Snakemake-workflow-60c060?style=for-the-badge)](https://snakemake.readthedocs.io/)
@@ -13,8 +17,6 @@
 [![joblib](https://img.shields.io/badge/joblib-parallelism-4B8BBE?style=for-the-badge)](https://joblib.readthedocs.io/)
 [![papermill](https://img.shields.io/badge/papermill-notebooks-F37626?style=for-the-badge)](https://papermill.readthedocs.io/)
 [![critdd](https://img.shields.io/badge/critdd-statistics-C0392B?style=for-the-badge)](https://github.com/mirkobunse/critdd)
-
-This repository provides the necessary code and resources for conducting experiments that evaluate **neighborhood topological preservation** in widely used **dimensionality reduction techniques** applied to **event-related COVID-19 data**. The main goal is determine whether or not such techniques are useful for event analysis' representation learning.
 
 ## Overview  
 
@@ -129,7 +131,7 @@ Each combination of hyperparameters might produce a different graph. Therefore, 
 
 ## Event Analysis
 
-Event Analysis is a research area focused on understanding events and their interconnections. An event is defined as something that happens—with a description (what), a cause (why), at a location (where), at a specific time (when), by an agent (who), and in a particular manner (how). In short, an event is an action or series of actions, or a change that occurs due to specific reasons, involving entities such as objects, humans, and locations.
+Event Analysis is a research area focused on understanding events and their interconnections. An event is defined as something that happens, with a description (what), a cause (why), at a location (where), at a specific time (when), by an agent (who), and in a particular manner (how). In short, an event is an action or series of actions, or a change that occurs due to specific reasons, involving entities such as objects, humans, and locations.
 
 An event example can be as follows: _Researchers at the National Institute for Space Research discovered that fires in the Amazon Rainforest increased by 30% in 2019 using environmental data analysis_. We shall break this event in the previous components: 
 - **Who:** Researchers at the National Institute for Space Research.
@@ -151,7 +153,7 @@ These constraints arise because, unlike in other machine learning applications, 
 
 # Purpose
 
-This repository aims to evaluate whether tecniques like PCA, t-SNE, and UMAP can generate representations that faithfully preserve the original multi-dimensional proximities of event data. By leveraging consistency graphs —constructed from independently generated nearest-neighbor graphs for semantic, geospatial, and temporal features— we can assess how well these dimensionality reduction methods maintain the inherent structure of the data.
+This repository aims to evaluate whether tecniques like PCA, t-SNE, and UMAP can generate representations that faithfully preserve the original multi-dimensional proximities of event data. By leveraging consistency graphs, constructed from independently generated nearest-neighbor graphs for semantic, geospatial, and temporal features, we can assess how well these dimensionality reduction methods maintain the inherent structure of the data.
 
 If they perform well in that task, the new feature space is low-dimensional and maintain the original proximities, besides the fact they may be the main simple options for dimensionality reduction. If not, there's a path explore modern representation learning techniques.
 
@@ -195,11 +197,11 @@ Edit `workflow/config.yaml` before running:
 
 The pipeline stages, in order:
 
-1. **Preprocessing** — runs `DataPreparation/preprocessing_datasets.ipynb` via papermill; produces sampled datasets in `DataPreparation/UsageDatasets/`
-2. **Feature extraction** — extracts semantic (768-d BERT), geospatial (lat/lng), and temporal features per dataset; saves to `DatasetEventFeatures/`
-3. **Graph generation** — builds k-NN graphs for all hyperparameter combinations; the k-value sweep is derived automatically from `sqrt(n_rows)` per dataset
-4. **Evaluation** — compares each DR graph against every consistency graph; results saved as Parquet files in `EvaluationResults/`
-5. **Critical difference diagrams** — ranks methods via `critdd`; output notebooks in `CritddResults/`
+1. **Preprocessing** - runs `DataPreparation/preprocessing_datasets.ipynb` via papermill; produces sampled datasets in `DataPreparation/UsageDatasets/`
+2. **Feature extraction** - extracts semantic (768-d BERT), geospatial (lat/lng), and temporal features per dataset; saves to `DatasetEventFeatures/`
+3. **Graph generation** - builds k-NN graphs for all hyperparameter combinations; the k-value sweep is derived automatically from `sqrt(n_rows)` per dataset
+4. **Evaluation** - compares each DR graph against every consistency graph; results saved as Parquet files in `EvaluationResults/`
+5. **Critical difference diagrams** - ranks methods via `critdd`; output notebooks in `CritddResults/`
 
 Snakemake tracks all file dependencies and skips steps whose outputs already exist, so partial runs can be resumed safely.
 

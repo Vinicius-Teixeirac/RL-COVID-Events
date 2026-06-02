@@ -74,7 +74,7 @@ def get_consistency_graph(semantic_features: np.ndarray,
     
     # Builds k-NN adjacency matrices
     adj_matrix_semantic = kneighbors_graph(semantic_features, k_s, mode='connectivity', metric="cosine").toarray()
-    adj_matrix_geospatial = kneighbors_graph(geospatial_features, k_g, mode='connectivity', metric="haversine").toarray()
+    adj_matrix_geospatial = kneighbors_graph(np.radians(geospatial_features), k_g, mode='connectivity', metric="haversine").toarray()
     adj_matrix_temporal = kneighbors_graph(temporal_features, k_t, mode='connectivity', metric="euclidean").toarray()
 
     # Sums adjacency matrices and threshold
