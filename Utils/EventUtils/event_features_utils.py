@@ -5,7 +5,6 @@ from pathlib import Path
 
 import numpy as np
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
 def save_event_features(event_features: dict[str, np.ndarray], dataset_name: str, output_dir: str) -> None:
     """

@@ -8,43 +8,35 @@ run_evaluation() {
   local log_eval
   log_eval=$(get_log_file "$base_log_dir/Evaluation" "eval_${method//+/_}" "$dataset_stem")
   mkdir -p "$base_log_dir/Evaluation"
-  local comp_folder n_jobs
+  local comp_folder
+  local n_jobs="${EVAL_N_JOBS:-100}"
   case "$method" in
     ICA)
       comp_folder="./GeneratedGraphs/ICA"
-      n_jobs=100
       ;;
     Isomap)
       comp_folder="./GeneratedGraphs/Isomap"
-      n_jobs=100
       ;;
     LLE)
       comp_folder="./GeneratedGraphs/LLE"
-      n_jobs=100
       ;;
     PCA)
       comp_folder="./GeneratedGraphs/PCA"
-      n_jobs=100
       ;;
     RandomProjection)
       comp_folder="./GeneratedGraphs/RandomProjection"
-      n_jobs=100
       ;;
     Spectral)
       comp_folder="./GeneratedGraphs/Spectral"
-      n_jobs=100
       ;;
     TSNE)
       comp_folder="./GeneratedGraphs/TSNE"
-      n_jobs=100
       ;;
     "TSNE+PCA")
       comp_folder="./GeneratedGraphs/TSNE_PCA"
-      n_jobs=100
       ;;
     UMAP)
       comp_folder="./GeneratedGraphs/UMAP"
-      n_jobs=100
       ;;
     *)
       log_msg "ERROR" "Unknown evaluation method: $method"

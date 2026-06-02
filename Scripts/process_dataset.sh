@@ -75,7 +75,7 @@ process_dataset() {
 
   # Run evaluations.
   local log_eval_base="$LOG_DIR/${dataset_stem}"
-  parallel -j 1 run_evaluation {1} "$dataset_path" "$dataset_stem" "$log_eval_base" \
+  parallel -j "${EVAL_PARALLEL_JOBS:-9}" run_evaluation {1} "$dataset_path" "$dataset_stem" "$log_eval_base" \
     ::: "ICA" "Isomap" "LLE" "PCA" "RandomProjection" "Spectral" "TSNE" "TSNE+PCA" "UMAP"     
 
   # Generate critical difference diagram.

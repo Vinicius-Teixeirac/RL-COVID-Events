@@ -62,7 +62,7 @@ def argument_parsing():
     parser.add_argument('--random_state', type=int, default=42,
                         help="seed for reproductibility")
     parser.add_argument('--output_path', type=str, required=True, 
-                        help="The path to save the knn graph") # aqui não estou seguindo o padrão de projeto porque deixei o output sendo criando fora do .py, mas vou me preocupar com isso dps
+                        help="The path to save the knn graph")
 
     return parser.parse_args()
 

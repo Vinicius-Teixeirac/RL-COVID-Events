@@ -6,7 +6,6 @@ import networkx as nx
 from sklearn.decomposition import FastICA
 from sklearn.neighbors import kneighbors_graph
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
 def get_ica_graph(events: np.ndarray,
                   k_ica: int,

@@ -4,7 +4,6 @@ from pathlib import Path
 
 import networkx as nx
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
 def save_edges(graph: nx.DiGraph, output_path: str) -> None:
     """

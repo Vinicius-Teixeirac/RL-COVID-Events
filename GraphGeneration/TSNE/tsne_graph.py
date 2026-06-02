@@ -7,7 +7,6 @@ from sklearn.decomposition import PCA
 from openTSNE import TSNE
 from sklearn.neighbors import kneighbors_graph
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
 def get_tsne_graph(events: np.ndarray,
                    k_tsne: int, 

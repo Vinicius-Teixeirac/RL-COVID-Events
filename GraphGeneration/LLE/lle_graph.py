@@ -5,7 +5,6 @@ import networkx as nx
 from sklearn.manifold import LocallyLinearEmbedding
 from sklearn.neighbors import kneighbors_graph
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
 def get_lle_graph(events: np.ndarray,
                   k_lle: int,

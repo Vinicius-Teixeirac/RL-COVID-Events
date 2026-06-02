@@ -5,7 +5,6 @@ import networkx as nx
 from sklearn.neighbors import kneighbors_graph
 from sklearn.random_projection import GaussianRandomProjection
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
 def get_random_projection_graph(events: np.ndarray,
                                 k_random: int,

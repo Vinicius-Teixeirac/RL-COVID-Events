@@ -7,7 +7,6 @@ from umap import UMAP
 import networkx as nx
 from sklearn.neighbors import kneighbors_graph
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
 def get_umap_graph(events: np.ndarray,
                    k_umap: int,
@@ -23,19 +22,19 @@ def get_umap_graph(events: np.ndarray,
 
     Parameters
     ----------
-    representation : np.ndarray
-        The input data representation (high-dimensional).
-    k : int
-        Number of nearest neighbors for the graph.
+    events : np.ndarray
+        The input data events (high-dimensional).
+    k_umap : int
+        Number of nearest neighbors for the UMAP-reducted graph.
     n_neighbors: int
         This parameter controls how UMAP balances local versus global structure in the data.
     min_dist: float
         The min_dist parameter controls how tightly UMAP is allowed to pack points together.
     initialization: str
         How to initialize the low dimensional embedding.
-    dim : int
+    n_components : int
         Desired number of dimensions for UMAP reduction.
-    rnd_state: int
+    random_state: int
         Seed for reproducibility (since UMAP is stochastic)
     
     Returns
