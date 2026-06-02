@@ -1,5 +1,19 @@
 # RL-COVID-Events  
 
+[![Python](https://img.shields.io/badge/Python-3.11--3.12-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
+[![uv](https://img.shields.io/badge/uv-package%20manager-DE5FE9?style=for-the-badge)](https://docs.astral.sh/uv/)
+[![Snakemake](https://img.shields.io/badge/Snakemake-workflow-60c060?style=for-the-badge)](https://snakemake.readthedocs.io/)
+[![scikit-learn](https://img.shields.io/badge/scikit--learn-DR%20methods-F7931E?style=for-the-badge&logo=scikitlearn&logoColor=white)](https://scikit-learn.org/)
+[![openTSNE](https://img.shields.io/badge/openTSNE-t--SNE-0096FF?style=for-the-badge)](https://opentsne.readthedocs.io/)
+[![umap-learn](https://img.shields.io/badge/umap--learn-UMAP-7B2D8B?style=for-the-badge)](https://umap-learn.readthedocs.io/)
+[![NetworkX](https://img.shields.io/badge/NetworkX-graphs-E07B39?style=for-the-badge)](https://networkx.org/)
+[![NumPy](https://img.shields.io/badge/NumPy-numerical-013243?style=for-the-badge&logo=numpy&logoColor=white)](https://numpy.org/)
+[![SciPy](https://img.shields.io/badge/SciPy-numerical-8CAAE6?style=for-the-badge&logo=scipy&logoColor=white)](https://scipy.org/)
+[![pandas](https://img.shields.io/badge/pandas-data-150458?style=for-the-badge&logo=pandas&logoColor=white)](https://pandas.pydata.org/)
+[![joblib](https://img.shields.io/badge/joblib-parallelism-4B8BBE?style=for-the-badge)](https://joblib.readthedocs.io/)
+[![papermill](https://img.shields.io/badge/papermill-notebooks-F37626?style=for-the-badge)](https://papermill.readthedocs.io/)
+[![critdd](https://img.shields.io/badge/critdd-statistics-C0392B?style=for-the-badge)](https://github.com/mirkobunse/critdd)
+
 This repository provides the necessary code and resources for conducting experiments that evaluate **neighborhood topological preservation** in widely used **dimensionality reduction techniques** applied to **event-related COVID-19 data**. The main goal is determine whether or not such techniques are useful for event analysis' representation learning.
 
 ## Overview  
@@ -140,23 +154,6 @@ These constraints arise because, unlike in other machine learning applications, 
 This repository aims to evaluate whether tecniques like PCA, t-SNE, and UMAP can generate representations that faithfully preserve the original multi-dimensional proximities of event data. By leveraging consistency graphs —constructed from independently generated nearest-neighbor graphs for semantic, geospatial, and temporal features— we can assess how well these dimensionality reduction methods maintain the inherent structure of the data.
 
 If they perform well in that task, the new feature space is low-dimensional and maintain the original proximities, besides the fact they may be the main simple options for dimensionality reduction. If not, there's a path explore modern representation learning techniques.
-
-# Stack
-
-| Layer | Technology |
-|-------|-----------|
-| Language | Python 3.11 – 3.12 |
-| Package management | [uv](https://docs.astral.sh/uv/) |
-| Pipeline orchestration | [Snakemake](https://snakemake.readthedocs.io/) |
-| DR — linear | [scikit-learn](https://scikit-learn.org/) — PCA, ICA (FastICA), Gaussian Random Projection |
-| DR — manifold | [scikit-learn](https://scikit-learn.org/) — Isomap, LLE, Spectral Embedding |
-| DR — t-SNE | [openTSNE](https://opentsne.readthedocs.io/) |
-| DR — UMAP | [umap-learn](https://umap-learn.readthedocs.io/) |
-| Graphs | [NetworkX](https://networkx.org/) |
-| Numerical | [NumPy](https://numpy.org/) · [SciPy](https://scipy.org/) · [pandas](https://pandas.pydata.org/) |
-| Parallelism | [joblib](https://joblib.readthedocs.io/) |
-| Notebook execution | [papermill](https://papermill.readthedocs.io/) |
-| Statistical diagrams | [critdd](https://github.com/mirkobunse/critdd) |
 
 # How to run
 
